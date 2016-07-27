@@ -144,6 +144,9 @@ Here, `providerObject` is simply the object specified in the ethdeploy environme
 
 Where the provider `type` property is actually specifying the provider module (e.g. `http` => `ethdeploy-provider-http`). This design pattern is once again similar to the `webpack` loader system.
 
+## Providers
+ - [ethdeploy-provider-http](http://github.com/ethdeploy-provider-http)
+
 ## Future Todo/Design Considerations
  - Don't use promises by default for deployment staging (allow users to make plugins for this)
  - Enable pre-loader and post-loader staging for contract deployment
