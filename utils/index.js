@@ -80,10 +80,12 @@ const addContractToBuildObject = function(buildObject, buildProperties, provider
 
 // build provider object for web3
 const buildProvider = function(providerObject, web3Instance) {
-  if (providerObject.type === 'http') {
-    return (new web3Instance.providers.HttpProvider(`${providerObject.host}:${providerObject.port}`));
-  } else {
-    throwError(`Provider type ${providerObject.type} not supported..`);
+  try {
+    const ethdeployHTTPProvider = require(`ethdeploy-provider-${providerObject.type}`);
+
+    return ethdeployHTTPProvider(providerObject);
+  } catch(buildProviderError) {
+    throwError(`Provider error ${buildProviderError} not supported..`);
   }
 };
 
