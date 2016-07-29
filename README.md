@@ -144,6 +144,13 @@ Here, `providerObject` is simply the object specified in the ethdeploy environme
 
 Where the provider `type` property is actually specifying the provider module (e.g. `http` => `ethdeploy-provider-http`). This design pattern is once again similar to the `webpack` loader system.
 
+## Environment Selection
+You can either deploy to "all" or a specific environment by setting the `environmentSelector` property.
+
+```
+environment: 'testrpc',
+```
+
 ## Providers
  - [ethdeploy-provider-http](http://github.com/silentcicero/ethdeploy-provider-http)
  - [ethdeploy-provider-zero-client](http://github.com/silentcicero/ethdeploy-provider-zero-client)
@@ -152,7 +159,6 @@ Where the provider `type` property is actually specifying the provider module (e
  - Don't use promises by default for deployment staging (allow users to make plugins for this)
  - Enable pre-loader and post-loader staging for contract deployment
  - Enable promisified or sync classes object return
- - Multiple environment selection (select multiple environments to deploy too)
  - Great unit tests ;)
  - Make configuration more awesome (the current intake input is cool, but could be far more configurable)
  - Make provider module naming conventions/requirements less opinionated
