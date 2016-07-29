@@ -34,6 +34,16 @@ testrpc
 npm run example
 ```
 
+## CLI
+
+If you would like to use `ethdeploy` off a CLI, use [ethdeploy-cli](http://github.com/silentcicero/ethdeploy-cli):
+
+```
+npm install -g ethdeploy-cli
+
+ethdeploy  ./ethdeploy.config.js  ./outputDir/
+```
+
 ## Input Description
 
 Feed `ethdeploy` a deploy module, the compiled contracts and config object and it will deploy your contracts the way you want, where you want it and spit out a single object
@@ -145,7 +155,7 @@ Here, `providerObject` is simply the object specified in the ethdeploy environme
 Where the provider `type` property is actually specifying the provider module (e.g. `http` => `ethdeploy-provider-http`). This design pattern is once again similar to the `webpack` loader system.
 
 ## Environment Selection
-You can either deploy to "all" or a specific environment by setting the `environmentSelector` property.
+You can either deploy to "all" or a specific environment by setting the `environment` property.
 
 ```
 environment: 'testrpc',

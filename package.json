@@ -33,9 +33,7 @@
   "devDependencies": {
     "ethdeploy-provider-http": "^0.1.0",
     "ethdeploy-provider-zero-client": "^0.1.7",
-    "ethereumjs-testrpc": "^2.0.9",
     "ethereumjs-util": "^4.5.0",
-    "mocha": "^2.5.3",
-    "solc": "^0.3.5"
+    "mocha": "^2.5.3"
   }
 }
