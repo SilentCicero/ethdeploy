@@ -19,15 +19,8 @@ const addObjectsToClasses = utils.addObjectsToClasses;
 const isCompiledClassesObject = utils.isCompiledClassesObject;
 require('./utils/arrayIncludesPolyfill');
 
-// the main deployer object
-const deployer = function(deployerConfig, callback) {
-  // handle undefined callback
-  if (typeof callback !== 'function') {
-    callback = function(e, r) {};
-  }
-
-  // constants
-  const environmentSelector = deployerConfig.environment;
+// deployer function helper
+const deployEnvironment = function(environmentSelector, deployerConfig, callback) {
   const deployModule = deployerConfig.deploymentModule;
   const compiledClasses = deployerConfig.outputContracts;
   const providedOptions = deployerConfig.deploymentConfig;
@@ -109,6 +102,16 @@ const deployer = function(deployerConfig, callback) {
     const contractDeployPromise = new Promise(function(resolveDeployment, rejectDeployment) {
       // get web3 accounts
       web3.eth.getAccounts(function(accountsError, accountsResult) {
+        // handle no accounts
+        if (typeof accountsResult === 'undefined') {
+          throwError(`Error, no accounts provided.`);
+        }
+
+        // handle no accounts
+        if (accountsResult.length === 0) {
+          throwError(`Error, no accounts provided.`);
+        }
+
         // handle errors
         if(accountsError) {
           throwError(`Error while getting accounts from provider: ${accountsError}`);
@@ -139,7 +142,7 @@ const deployer = function(deployerConfig, callback) {
         params.push(function(contractError, contractResult){
           // handle contract deployment error
           if (contractError) {
-            log(`Contract '${contractObject.name}' failed to deploy: ${contractError}`);
+            log(`Contract '${contractObject.name}' failed to deploy: ${String(contractError)} -- ${JSON.stringify(contractError)}`);
             return rejectDeployment(contractError);
           }
 
@@ -150,7 +153,7 @@ const deployer = function(deployerConfig, callback) {
             // get the transaction recepit for the contract deployed
             web3.eth.getTransactionReceipt(contractResult.transactionHash, function(receiptError, receiptObject){
               if (receiptError) {
-                return throwError(`Error while getting transaction receipt: ${receiptError}`);
+                return throwError(`Error while getting transaction receipt: ${serialize(receiptError)}`);
               }
 
               // build new envionrments build object
@@ -198,6 +201,45 @@ const deployer = function(deployerConfig, callback) {
 
   // run deploy script
   deployModule(deployFunction, contractsObject, web3);
+};
+
+// the main deployer object
+const deployer = function(deployerConfig, callback) {
+  // handle undefined callback
+  if (typeof callback !== 'function') {
+    callback = function(e, r) {};
+  }
+
+  // constants
+  const environmentSelector = deployerConfig.environment;
+
+  // handle all
+  if (environmentSelector == 'all') {
+    var deployerOutputObject = {};
+    var numEnvironmentsDeployed = 0;
+    const environmentNames = Object.keys(deployerConfig.deploymentConfig.environments);
+
+    // callback deployer output
+    const combinerCallback = function(error, result){
+      if (error) {
+        return callback(error, null);
+      } else {
+        numEnvironmentsDeployed += 1;
+        deployerOutputObject = Object.assign(deployerOutputObject, result);
+      }
+
+      if (environmentNames.length === numEnvironmentsDeployed) {
+        callback(null, deployerOutputObject);
+      }
+    }
+
+    environmentNames.forEach(function(environmentName){
+      deployEnvironment(environmentName, deployerConfig, combinerCallback);
+    });
+  } else {
+    // deploy environment
+    deployEnvironment(environmentSelector, deployerConfig, callback);
+  }
 };
 
 // export main deployer module

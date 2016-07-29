@@ -1,5 +1,11 @@
+const Tx = require('ethereumjs-tx');
+const ethUtil = require('ethereumjs-util');
+
+// make sure you create a JSON file for your account and private key
+// {"address": "0x000", "privateKey": "00000"}
+
 module.exports = {
-  environment: 'testrpc',
+  environment: 'all',
   deploymentModule: function(deploy, contracts){
     deploy(contracts.SimpleStore).then(function(simpleStoreInstance){
       deploy(contracts.SimpleStoreService, simpleStoreInstance.address).then(function(){
@@ -10,13 +16,9 @@ module.exports = {
     });
   },
   deploymentConfig: {
-    'defaultBuildProperties': [
-      'from',
-      'transactionHash',
-      'gas'
-    ],
+    'defaultBuildProperties': ['from', 'transactionHash', 'gas'],
     'defaultAccount': 0,
-    'defaultGas': 3000000,
+    'defaultGas': 3135000,
     'environments': {
       'testrpc': {
         'provider': {
@@ -29,6 +31,33 @@ module.exports = {
             'class': 'SimpleStore',
             'from': 3, // a custom account
             'gas': 2900000, // some custom gas
+          },
+        },
+      },
+      'morden': {
+        'provider': {
+          'type': 'zero-client',
+          getAccounts: function(cb) {
+            // dont include keys anywhere inside or around repo
+            cb(null, [require('../../account.json').address]);
+          },
+          signTransaction: function(rawTx, cb) {
+            // dont include private key info anywhere around repo
+            const privateKey = new Buffer(require('../../account.json').privateKey, 'hex');
+
+            const tx = new Tx(rawTx);
+            tx.sign(privateKey);
+
+            cb(null, ethUtil.bufferToHex(tx.serialize()));
+          },
+          'host': 'https://morden.infura.io',
+          'port': 8545,
+        },
+        'objects': {
+          'SomeCustomInstance': {
+            'class': 'SimpleStore',
+            'from': 0, // a custom account
+            'gas': 3135000, // some custom gas
           },
         },
       },

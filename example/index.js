@@ -1,6 +1,8 @@
 // require ethdeploy, solc and the deployModule
 const ethdeploy = require('../index');
-const ethdeployConfig = require('./ethdeploy.config.js');
+// const ethdeployConfig = require('./ethdeploy.config.js');
+// const ethdeployConfig = require('./ethdeploy-multi.config.js');
+ const ethdeployConfig = require('./ethdeploy-zero-client.config.js');
 
 // make sure you run "testrpc" before this script
 // this will now run ethdeploy to deploy to the specified environment

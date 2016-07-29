@@ -132,7 +132,7 @@ module.exports = function(providerObject) {
 }
 ```
 
-Here, `providerObject` is simply the object specified in the ethdeploy environment config, for example:
+Here, `providerObject` is simply the object specified in the ethdeploy environment config, here is a standard web3 HTTP provider for example:
 
 ```js
 'provider': {
@@ -145,7 +145,8 @@ Here, `providerObject` is simply the object specified in the ethdeploy environme
 Where the provider `type` property is actually specifying the provider module (e.g. `http` => `ethdeploy-provider-http`). This design pattern is once again similar to the `webpack` loader system.
 
 ## Providers
- - [ethdeploy-provider-http](http://github.com/ethdeploy-provider-http)
+ - [ethdeploy-provider-http](http://github.com/silentcicero/ethdeploy-provider-http)
+ - [ethdeploy-provider-zero-client](http://github.com/silentcicero/ethdeploy-provider-zero-client)
 
 ## Future Todo/Design Considerations
  - Don't use promises by default for deployment staging (allow users to make plugins for this)
@@ -155,6 +156,9 @@ Where the provider `type` property is actually specifying the provider module (e
  - Great unit tests ;)
  - Make configuration more awesome (the current intake input is cool, but could be far more configurable)
  - Make provider module naming conventions/requirements less opinionated
+
+## Deploying To Testnet/Livenet
+ You can now easily deploy contracts off ethdeploy using the [ethdeploy-provider-zero-client](http://github.com/ethdeploy-provider-zero-client). See the `example/ethdeploy-zero-client.config.js` for more configuration details.
 
 ## Design Philosophy
  - Unix Philosophy

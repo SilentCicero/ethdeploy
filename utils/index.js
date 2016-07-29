@@ -112,9 +112,18 @@ const stripComments = function(dataString) {
 // check web3 connectivity
 const checkWeb3Connectivity = function(web3Instance, environmentSelector) {
   // check web3 connection, fail loudly
-  if(!web3Instance.isConnected()) {
-    throwError(`selected web3 provider '${environmentSelector}' is not connected! Please make sure your node is running and the necessary RPC ports are open before running ethdeploy...`);
-    return;
+  if (web3Instance.currentProvider.hasOwnProperty('isConnected')) {
+    if (!web3Instance.isConnected()) {
+      throwError(`selected web3 provider '${environmentSelector}' is not connected! Please make sure your node is running and the necessary RPC ports are open before running ethdeploy...`);
+      return;
+    }
+  } else {
+    web3Instance.eth.getGasPrice(function(error, result){
+      if (error && !result) {
+        throwError(`selected web3 provider '${environmentSelector}' is not connected! Please make sure your node is running and the necessary RPC ports are open before running ethdeploy...`);
+        return;
+      }
+    });
   }
 };
 

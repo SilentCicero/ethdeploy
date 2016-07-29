@@ -1,5 +1,13 @@
 # Changelog
 
+## ethdpeloy v0.1.2 -- zero-client provider example, select "all" environments, isConnected handling
+
+Now you can deploy to all environments specified in the config module. We have also added support for another provider `ethdeploy-provider-zero-client`. Now you can deploy to things like ethereum livenet and testnet, key signing is handled in the config module. Note, keys and addresses should all be stored outside of your repository. Do not store any wallet, key or private key information anywhere inside your repository. All your ether will be stolen.
+
+Better connection checking for providers that dont have the isConnected prototype method.
+
+The multi-config example demonstrates deploying to `testrpc` and `zero-client` environments. Just uncomment the config in the `example/index` and run the example `npm run example` to see deployment to multiple envronments at once.
+
 ## ethdeploy v0.1.1 -- custom provider modules
 
 This update allows you to build your own environment provider modules. Here is the HTTP provider module in full:
