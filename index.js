@@ -92,7 +92,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
 
     // has params
     if(args.length > 1) {
-      params = args.slice(1, args.length - 1);
+      params = args.slice(1);
     }
 
     // check web3 connectivity
