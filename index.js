@@ -4,6 +4,7 @@ const Web3 = require('web3');
 const Promise = require('promise');
 const fs = require('fs');
 const serialize = require('serialize-javascript');
+const bnToString = require('bignumber-to-string');
 
 // custom utils and abstractions
 const utils = require('./utils/index');
@@ -21,13 +22,14 @@ require('./utils/arrayIncludesPolyfill');
 
 // deployer function helper
 const deployEnvironment = function(environmentSelector, deployerConfig, callback) {
-  const deployModule = deployerConfig.deploymentModule;
-  const compiledClasses = deployerConfig.outputContracts;
-  const providedOptions = deployerConfig.deploymentConfig;
+  const deployModule = deployerConfig.module;
+  const compiledClasses = deployerConfig.entry[environmentSelector];
+  const providedOptions = deployerConfig.config;
 
   // check compiled classes object
   // fail loudly if it doesn't look right
-  isCompiledClassesObject(compiledClasses);
+  // idenitfy good environment object
+  // isCompiledClassesObject(compiledClasses);
 
   // check deployModule
   if (typeof environmentSelector !== "string") {
@@ -51,7 +53,6 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
 
   // defaultOptions object
   const defaultOptions = {
-    'defaultBuildProperties': ['from', 'gas', 'transactionHash', 'receipt'],
     'defaultAccount': 0,
     'defaultGas': 3000000,
     'environments': {},
@@ -92,7 +93,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
 
     // has params
     if(args.length > 1) {
-      params = args.slice(1, args.length - 1);
+      params = args.slice(1, args.length);
     }
 
     // check web3 connectivity
@@ -131,6 +132,46 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
           selectedAccount = handleAccountObject(contractObject.from, accountsResult);
         }
 
+        // copy the array params before adding calback
+        const paramsInput = params.slice();
+
+        // parse down the contract input params, if any, to keep consistent
+        function parseInputParams(inputParams) {
+          return bnToString(inputParams);
+        }
+
+        // check if this contract has already been deployed
+        function contractIsAlreadyDeployed (presentContractObject, newContractObject) {
+          if (presentContractObject.name === newContractObject.name
+            && presentContractObject.bytecode === newContractObject.bytecode
+            && presentContractObject.from === newContractObject.from
+            && presentContractObject.params === newContractObject.params
+            && presentContractObject.gas === newContractObject.gas) {
+            return true;
+          }
+
+          return false;
+        }
+
+        // the build object that will become the output
+        const contractBuildObject = {
+          name: contractObject.name,
+          address: contractObject.address,
+          interface: contractInterface,
+          bytecode: contractBytecode,
+          from: selectedAccount,
+          gas: selectedGasAmount,
+          params: parseInputParams(paramsInput),
+          receipt: null,
+        };
+
+        // check if the conract deployment promise should be resolved early
+        // resolve the deployment early, because this contract has already been deployed
+        // its gas, from, bytecode, params, name are all the same
+        if (contractIsAlreadyDeployed(compiledClasses, contractBuildObject)) {
+          resolveDeployment(contractFactory.at(contractObject.address));
+        }
+
         // add txObject
         params.push({
           from: selectedAccount,
@@ -157,7 +198,18 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
               }
 
               // build new envionrments build object
-              environmentsBuildObject = addContractToBuildObject(environmentsBuildObject, options.defaultBuildProperties, environmentSelector, contractObject.name, contractResult.address, contractInterface, contractBytecode, contractResult.transactionHash, selectedAccount, selectedGasAmount, receiptObject);
+              environmentsBuildObject = addContractToBuildObject(environmentsBuildObject,
+                ['from', 'gas', 'transactionHash', 'receipt', 'params'],
+                environmentSelector,
+                contractObject.name,
+                contractResult.address,
+                contractInterface,
+                contractBytecode,
+                contractResult.transactionHash,
+                selectedAccount,
+                selectedGasAmount,
+                receiptObject,
+                paramsInput);
 
               // count all keys in object
               // this is slightly hacky, the count should be in a stats object
@@ -211,13 +263,13 @@ const deployer = function(deployerConfig, callback) {
   }
 
   // constants
-  const environmentSelector = deployerConfig.environment;
+  const environmentSelector = deployerConfig.output.environment;
 
   // handle all
   if (environmentSelector == 'all') {
     var deployerOutputObject = {};
     var numEnvironmentsDeployed = 0;
-    const environmentNames = Object.keys(deployerConfig.deploymentConfig.environments);
+    const environmentNames = Object.keys(deployerConfig.config.environments);
 
     // callback deployer output
     const combinerCallback = function(error, result){

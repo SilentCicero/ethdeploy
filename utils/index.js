@@ -30,7 +30,7 @@ const addContractNamesToClasses = function(classes) {
 
 // immutable object return
 // adds the latest deployed contract to the end output build object
-const addContractToBuildObject = function(buildObject, buildProperties, provider, contractName, contractAddress, contractInterface, contractBytecode, transactionHash, accountUsed, gasAmountUsed, receiptObject) {
+const addContractToBuildObject = function(buildObject, buildProperties, provider, contractName, contractAddress, contractInterface, contractBytecode, transactionHash, accountUsed, gasAmountUsed, receiptObject, paramsInput) {
   if (typeof buildObject[provider] === 'undefined') {
     buildObject[provider] = {};
   }
@@ -46,34 +46,31 @@ const addContractToBuildObject = function(buildObject, buildProperties, provider
   }
 
   // include gas
-  if(buildProperties.includes('gas')) {
-    buildObject[provider][contractName].gas = gasAmountUsed;
-  }
+  buildObject[provider][contractName].gas = gasAmountUsed;
+
+  // params
+  buildObject[provider][contractName].params = paramsInput;
+
 
   // include contract bytecode
-  if(buildProperties.includes('bytecode')) {
-    buildObject[provider][contractName].bytecode = contractBytecode;
-  }
+  buildObject[provider][contractName].bytecode = contractBytecode;
+
 
   // include contract interface
-  if(buildProperties.includes('interface')) {
-    buildObject[provider][contractName].interface = contractInterface;
-  }
+  buildObject[provider][contractName].interface = contractInterface;
+
 
   // include from
-  if(buildProperties.includes('from')) {
-    buildObject[provider][contractName].from = accountUsed;
-  }
+  buildObject[provider][contractName].from = accountUsed;
+
 
   // include transactionHash
-  if(buildProperties.includes('transactionHash')) {
-    buildObject[provider][contractName].transactionHash = transactionHash;
-  }
+  buildObject[provider][contractName].transactionHash = transactionHash;
+
 
   // include receipt
-  if(buildProperties.includes('receipt')) {
-    buildObject[provider][contractName].receipt = receiptObject;
-  }
+  buildObject[provider][contractName].receipt = receiptObject;
+
 
   return buildObject;
 };
@@ -165,14 +162,14 @@ const isCompiledClassesObject = function(compiledClasses) {
   }
 
   // check first contract for some basics
-  if (compiledClasses[Object.keys(compiledClasses)[0]].hasOwnProperty('bytecode') === false) {
+  /* if (compiledClasses[Object.keys(compiledClasses)[0]].hasOwnProperty('bytecode') === false) {
     throwError('Your contract compiled classes object does not look like a normal solc compiled classes object! Your classes should contain a "bytecode" property.');
   }
 
   // check first contract for some basics
   if (compiledClasses[Object.keys(compiledClasses)[0]].hasOwnProperty('interface') === false) {
     throwError('Your contract compiled classes object does not look like a normal solc compiled classes object! Your classes should contain a "interface" property.');
-  }
+  } */
 };
 
 // export utils

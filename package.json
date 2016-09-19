@@ -1,11 +1,12 @@
 {
   "name": "ethdeploy",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A highly configurable Ethereum smart-contract deployment staging utility.",
   "main": "index.js",
   "scripts": {
     "example": "node ./example/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:contracts": "cd tests && node ../node_modules/dapple/cmd/main.js build",
+    "test": "mocha tests/**.js -R spec --timeout 20000"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
     "url": "https://github.com/silentcicero/ethdeploy/issues"
   },
   "dependencies": {
+    "bignumber-to-string": "^0.1.4",
     "chalk": "^1.1.3",
     "promise": "^7.1.1",
     "serialize-javascript": "^1.3.0",
@@ -31,9 +33,12 @@
   },
   "homepage": "https://github.com/silentcicero/ethdeploy#readme",
   "devDependencies": {
+    "assert": "^1.4.1",
     "ethdeploy-provider-http": "^0.1.0",
     "ethdeploy-provider-zero-client": "^0.1.7",
+    "ethereumjs-testrpc": "^2.2.7",
     "ethereumjs-util": "^4.5.0",
-    "mocha": "^2.5.3"
+    "mocha": "^2.5.3",
+    "web3": "^0.15.3"
   }
 }
