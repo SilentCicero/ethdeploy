@@ -265,6 +265,11 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
     // deploy method used X timestamp
     contractsToBeDeployed = (fileData.match(/deploy\(/g) || []).length;
 
+    // handle no objects default
+    if (typeof options.environments[environmentSelector].objects === 'undefined') {
+      options.environments[environmentSelector].objects = {};
+    }
+
     // construct final contracts object
     const contractsObject = addContractNamesToClasses(addObjectsToClasses(compiledClasses, options.environments[environmentSelector].objects));
 

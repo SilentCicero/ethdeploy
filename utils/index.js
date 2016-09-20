@@ -126,6 +126,11 @@ const checkWeb3Connectivity = function(web3Instance, environmentSelector) {
 
 // add objects into classes object
 const addObjectsToClasses = function(classes, objects) {
+  // handle types
+  if (typeof objects !== 'object') {
+    throwError(`No objects defined while adding objects to classes.`);
+  }
+
   const classesObject = Object.assign({}, classes);
 
   Object.keys(objects).forEach(function(objectName) {
