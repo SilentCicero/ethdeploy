@@ -7,11 +7,14 @@ module.exports = {
   entry: {
     testrpc: contracts,
   },
-  module: function(deploy, contracts){
+  module: function(deploy, contracts, environment){
+
     deploy(contracts.SimpleStoreRegistry).then(function(simpleStoreRegistry){
-      deploy(contracts.SimpleStoreFactory, simpleStoreRegistry.address);
-      deploy(contracts.CustomSimpleStore);
-      deploy(contracts.AnotherCustomSimpleStore);
+      deploy(contracts.SimpleStoreFactory, simpleStoreRegistry.address).then(function(factoryInstance){
+        deploy(contracts.CustomSimpleStore);
+        deploy(contracts.AnotherCustomSimpleStore).then(function(contractInstance){
+        });
+      });
     });
   },
   config: {

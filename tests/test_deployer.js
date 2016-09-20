@@ -4,7 +4,7 @@ const web3 = new Web3();
 var TestRPC = require("ethereumjs-testrpc");
 var server = TestRPC.server();
 const contracts = require('./lib/classes.json');
-const deployer = require('../index-future.js');
+const deployer = require('../index.js');
 const testEthdeployModule = require('./test.ethdeply.config.js');
 
 before(function(done){

@@ -67,59 +67,75 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
   // log environment configured
   log(`Environment '${environmentSelector}' configured, starting contract deployment...`);
 
-  // construct deploy function
-  const deployFunction = function(){
-    // make args a mutable array, build contract object from args and a contract factory
-    const args = Array.prototype.slice.call(arguments);
-
-    // check args provided
-    if (args.length <= 0) {
-      return throwError('You must provide at least one argument into the deploy function.');
+  // get web3 accounts
+  web3.eth.getAccounts(function(accountsError, accountsResult) {
+    // handle no accounts
+    if (typeof accountsResult === 'undefined') {
+      throwError(`Error, no accounts provided.`);
     }
 
-    // build contract object
-    const contractObject = args[0];
-
-    // check for contract object
-    if (typeof contractObject !== 'object' || contractObject === null) {
-      return throwError('A contract or object instance does not exist. Please select only set objects or compiled contracts.');
+    // handle no accounts
+    if (accountsResult.length === 0) {
+      throwError(`Error, no accounts provided.`);
     }
 
-    // construct contract factory, bytecode, and factory
-    const contractInterface = JSON.parse(contractObject.interface);
-    const contractBytecode = contractObject.bytecode;
-    const contractFactory = web3.eth.contract(contractInterface);
-    var params = [];
-
-    // has params
-    if(args.length > 1) {
-      params = args.slice(1, args.length);
+    // handle errors
+    if(accountsError) {
+      throwError(`Error while getting accounts from provider: ${accountsError}`);
     }
 
-    // check web3 connectivity
-    checkWeb3Connectivity(web3, environmentSelector);
+    // setup selected account and gas amounts
+    var selectedAccount = handleAccountObject(options.defaultAccount, accountsResult);
 
-    // create contract deployment promise
-    const contractDeployPromise = new Promise(function(resolveDeployment, rejectDeployment) {
-      // get web3 accounts
-      web3.eth.getAccounts(function(accountsError, accountsResult) {
-        // handle no accounts
-        if (typeof accountsResult === 'undefined') {
-          throwError(`Error, no accounts provided.`);
-        }
+    // default gas
+    var defaultGas = options.defaultGas || 3000000;
 
-        // handle no accounts
-        if (accountsResult.length === 0) {
-          throwError(`Error, no accounts provided.`);
-        }
+    // default tx object
+    const defaultTxObject = {gas: defaultGas, from: selectedAccount};
 
-        // handle errors
-        if(accountsError) {
-          throwError(`Error while getting accounts from provider: ${accountsError}`);
-        }
+    // use done
+    var useDone = false;
 
-        // setup selected account and gas amounts
-        var selectedAccount = handleAccountObject(options.defaultAccount, accountsResult);
+    // done method
+    var doneMethod = function() {
+      useDone = true;
+      return function() {callback(null, environmentsBuildObject);};
+    };
+
+    // construct deploy function
+    const deployFunction = function(){
+      // make args a mutable array, build contract object from args and a contract factory
+      const args = Array.prototype.slice.call(arguments);
+
+      // check args provided
+      if (args.length <= 0) {
+        return throwError('You must provide at least one argument into the deploy function.');
+      }
+
+      // build contract object
+      const contractObject = args[0];
+
+      // check for contract object
+      if (typeof contractObject !== 'object' || contractObject === null) {
+        return throwError('A contract or object instance does not exist. Please select only set objects or compiled contracts.');
+      }
+
+      // construct contract factory, bytecode, and factory
+      const contractInterface = JSON.parse(contractObject.interface);
+      const contractBytecode = contractObject.bytecode;
+      const contractFactory = web3.eth.contract(contractInterface);
+      var params = [];
+
+      // has params
+      if(args.length > 1) {
+        params = args.slice(1, args.length);
+      }
+
+      // check web3 connectivity
+      checkWeb3Connectivity(web3, environmentSelector);
+
+      // create contract deployment promise
+      const contractDeployPromise = new Promise(function(resolveDeployment, rejectDeployment) {
         var selectedGasAmount = options.defaultGas;
 
         // select custom gas from object settings if available
@@ -216,7 +232,9 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
               const environmentObjectKeyCount = Object.keys(environmentsBuildObject[environmentSelector]).length;
 
               // write build file
-              if (contractsDeployed >= contractsToBeDeployed && environmentObjectKeyCount == contractsToBeDeployed) {
+              if (contractsDeployed >= contractsToBeDeployed
+                && environmentObjectKeyCount == contractsToBeDeployed
+                && useDone === false) {
                 log(`All contracts deployed successfully to environment '${environmentSelector}'!`);
                 callback(null, environmentsBuildObject);
               }
@@ -233,26 +251,26 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
         // build new contract
         contractFactory.new.apply(contractFactory, params);
       });
-    });
 
-    // return deployment promise for further async deployments
-    return contractDeployPromise;
-  };
+      // return deployment promise for further async deployments
+      return contractDeployPromise;
+    };
 
-  // serialize deploy script module function to count deploy
-  const serializedDeployFunction = serialize(deployModule);
+    // serialize deploy script module function to count deploy
+    const serializedDeployFunction = serialize(deployModule);
 
-  // strip comments
-  const fileData = stripComments(serializedDeployFunction);
+    // strip comments
+    const fileData = stripComments(serializedDeployFunction);
 
-  // deploy method used X timestamp
-  contractsToBeDeployed = (fileData.match(/deploy\(/g) || []).length;
+    // deploy method used X timestamp
+    contractsToBeDeployed = (fileData.match(/deploy\(/g) || []).length;
 
-  // construct final contracts object
-  const contractsObject = addContractNamesToClasses(addObjectsToClasses(compiledClasses, options.environments[environmentSelector].objects));
+    // construct final contracts object
+    const contractsObject = addContractNamesToClasses(addObjectsToClasses(compiledClasses, options.environments[environmentSelector].objects));
 
-  // run deploy script
-  deployModule(deployFunction, contractsObject, web3);
+    // run deploy script
+    deployModule(deployFunction, contractsObject, {doneMethod: doneMethod, web3: web3, defaultTxObject: defaultTxObject, accounts: accountsResult});
+  });
 };
 
 // the main deployer object

@@ -7,8 +7,11 @@ contract SimpleStoreFactory {
     registry = SimpleStoreRegistry(_registry);
   }
 
-  function createSimpleStore() returns (address) {
-    return address(new SimpleStore());
+  function createSimpleStore() returns (address simpleStore) {
+    simpleStore = address(new SimpleStore());
+    registry.register(simpleStore);
+
+    return simpleStore;
   }
 
   SimpleStoreRegistry registry;
