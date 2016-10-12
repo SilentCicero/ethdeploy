@@ -8,7 +8,6 @@ module.exports = {
     testrpc: contracts,
   },
   module: function(deploy, contracts, environment){
-
     deploy(contracts.SimpleStoreRegistry).then(function(simpleStoreRegistry){
       deploy(contracts.SimpleStoreFactory, simpleStoreRegistry.address).then(function(factoryInstance){
         deploy(contracts.CustomSimpleStore);
