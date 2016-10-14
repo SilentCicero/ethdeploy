@@ -4,10 +4,14 @@
   "description": "A highly configurable Ethereum smart-contract deployment staging utility.",
   "main": "index.js",
   "scripts": {
-    "example": "node ./example/index.js",
+    "node:stop": "killall -9 -q node; exit 0",
+    "example": "npm run node:stop && node ./example/index.js",
     "build:contracts": "cd tests && node ../node_modules/dapple/cmd/main.js build",
     "testrpc": "node ./node_modules/ethereumjs-testrpc/bin/testrpc",
-    "test": "mocha tests/**.js -R spec --timeout 20000"
+    "test": "npm run node:stop && mocha tests/**.js -R spec --timeout 20000"
+  },
+  "bin": {
+    "ethdeploy": "./bin/main.js"
   },
   "repository": {
     "type": "git",

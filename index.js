@@ -279,7 +279,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
     const contractsObject = addContractNamesToClasses(addObjectsToClasses(compiledClasses, options.environments[environmentSelector].objects));
 
     // run deploy script
-    deployModule(deployFunction, contractsObject, {doneMethod: doneMethod, web3: web3, defaultTxObject: defaultTxObject, accounts: accountsResult});
+    deployModule(deployFunction, contractsObject, {doneMethod: doneMethod, web3: web3, log: log, defaultTxObject: defaultTxObject, accounts: accountsResult});
   });
 };
 
