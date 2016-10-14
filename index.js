@@ -203,6 +203,11 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
             return rejectDeployment(contractError);
           }
 
+          // handle transaction hash
+          if (contractResult.transactionHash) {
+            log(`Contract '${contractObject.name}' deploying with transaction hash: ${contractResult.transactionHash} `);
+          }
+
           // handle contract deployment result
           if (contractResult.address) {
             contractsDeployed += 1;
