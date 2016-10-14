@@ -3,6 +3,7 @@ const contracts = require('./lib/classes.json');
 module.exports = {
   output: {
     environment: 'testrpc',
+    path: './tests/lib/environments.json',
   },
   entry: {
     testrpc: contracts,

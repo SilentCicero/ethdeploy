@@ -173,7 +173,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
         const contractBuildObject = {
           name: contractObject.name,
           address: contractObject.address,
-          interface: contractInterface,
+          interface: JSON.stringify(contractInterface),
           bytecode: contractBytecode,
           from: selectedAccount,
           gas: selectedGasAmount,
@@ -204,7 +204,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
           }
 
           // handle transaction hash
-          if (contractResult.transactionHash) {
+          if (contractResult.transactionHash && !contractResult.address) {
             log(`Contract '${contractObject.name}' deploying with transaction hash: ${contractResult.transactionHash} `);
           }
 
@@ -224,7 +224,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
                 environmentSelector,
                 contractObject.name,
                 contractResult.address,
-                contractInterface,
+                JSON.stringify(contractInterface),
                 contractBytecode,
                 contractResult.transactionHash,
                 selectedAccount,
