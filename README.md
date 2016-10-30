@@ -1,4 +1,4 @@
-<img src="https://github.com/SilentCicero/ethdeploy/blob/master/ethdeploy-logo.png">
+<img src="https://github.com/SilentCicero/ethdeploy/blob/master/ethdeploy-logo.png" width="500">
 
 -----------------------
 
