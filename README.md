@@ -1,7 +1,5 @@
 <img src="https://github.com/SilentCicero/ethdeploy/blob/master/ethdeploy-logo.png" width="500">
 
------------------------
-
 ## ethdeploy | webpack for smart-contracts ;)
 
 A first pass at a highly configurable contract staging and deployment utility.
