@@ -14,5 +14,7 @@ contract SimpleStoreFactory {
     return simpleStore;
   }
 
+  function something() {}
+
   SimpleStoreRegistry registry;
 }

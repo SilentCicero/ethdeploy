@@ -168,6 +168,49 @@ This is the example output JSON. The output notates all the contract information
 }
 ```
 
+## Redeployment Staging
+
+ethdeploy will not redeploy a contract if the entry input data is equal to the input data specified in the module. This means, if the contract `params`, `from` address, `bytecode`, `gas` and `interface` properties are the same as the new module input data, the contract will not be redeployed. Instead a contract instance will be used at the previsouly deployed contract address, with the specified interface. This way, if you have contracts in a deployment chain and some have the same inputs, they will not be redeployed, however, the complex deployment staging module will still continue as if they were deployed.
+
+Example:
+```
+  module: function(deploy, contracts, environment){
+    deploy(contracts.SimpleStore).then(function(simpleStoreInstance){
+      deploy(contracts.SimpleStoreService, simpleStoreInstance.address).then(function(){
+        environment.log('Yay!');
+      });
+    });
+  },
+  ...
+```
+
+In this example, if the `SimpleStore` contract bytecode where to change, then both the `SimpleStore` and `SimpleStoreService` contracts would have to be redeployed. Because the `bytecode` input has changed from the previous deployment, and so both contracts will be deployed.
+
+However, if the `SimpleStoreService` contract `bytecode` were to change, only the `SimpleStoreService` contract would need to be redeployed, as the input of the `SimpleStore` contract has not changed, and will be subsequently bypassed and `simpleStoreInstance` would just return an instance of the already deployed `SimpleStore` contract.
+
+## Ethdeploy Output As Entry Option
+
+ethdeploy has a single prominent feature (to be replaced eventually by a plugin or loader) which is the `outputAsEntry` option. By setting `outputAsEntry` to `true` in your config module, ethdeploy will read your `output.path` module (if any), and use this as the base `entry` on which the specified `entry` module will `Object.assign` too. Note, this cleaver feature is a work around for now, while better plugin and loader systems are designed for ethdeploy. The main use for this feature is to enable a raw contract data input flow from your build staging (e.g. `solc`, `dapple`, `truffle` etc..), and a consideration of previously deployed contracts from your `environments.json`. The `outputAsEntry` option must be explicitly set to true in order to be used.
+
+See: `examples/ethdeloy.outputAsEntry.config.js` for more details.
+
+## Client-Side Support
+
+The ethdeploy module can be used completely on the client-side. This allows you to orchestrate complex contract deployment on the client-side. Check the `examples/index.html` file for more details. Be sure to run a `TestRPC` instance before running the `index.html` file in your browser.
+
+If you want to use ethdeploy in the browser, make sure to remove the `output.path` from your config modules `output`. You must also specify your provider modules by hand, by specifying the `provider.module` property. See: `examples/index.html` for more details on client-side configuration.
+
+If you include the `dist/ethdeploy.js` module, along with the necessary provider modules, you can acces the `ethdeploy` module by using `window.ethdeploy` (and `window.ethdeployProviderHTTP` etc.).
+
+To browserify ethdeploy, simply run:
+```
+npm run browserify
+```
+
+All client-side modules can be found in the `dist` directory.
+
+Note, more explicit `clientSide` property specifiers may be required in the future.
+
 ## Ethdeploy Provider Module System
 
 ethdeploy allows you to build your own provider modules. At this point, ethdeploy provider modules must be prefixed in a specific way. If your provider `type` is specified as "http" for example, the npm module "ethdeploy-provider-http" must be installed, as it will be `require`d and used in the deployment staging. Note, this provider module naming convention will be less opinionated in the future.

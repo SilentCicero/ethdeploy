@@ -5,6 +5,7 @@ const Promise = require('promise');
 const fs = require('fs');
 const serialize = require('serialize-javascript');
 const bnToString = require('bignumber-to-string');
+const arrayEquals = require('array-equal');
 
 // custom utils and abstractions
 const utils = require('./utils/index');
@@ -18,12 +19,24 @@ const stripComments = utils.stripComments;
 const checkWeb3Connectivity = utils.checkWeb3Connectivity;
 const addObjectsToClasses = utils.addObjectsToClasses;
 const isCompiledClassesObject = utils.isCompiledClassesObject;
+const assembleOutputEntryObject = utils.assembleOutputEntryObject;
 require('./utils/arrayIncludesPolyfill');
 
 // deployer function helper
-const deployEnvironment = function(environmentSelector, deployerConfig, callback) {
+const deployEnvironment = function(environmentSelector, deployerConfig, readOutput, callback) {
+  // default the entry input
+  var compiledClasses = deployerConfig.entry[environmentSelector];
+  var outputEnvironment = null;
+
+  // if readOutput
+  if (readOutput !== null) {
+    // override readoutput entry with entry input
+    // this will move some properties onto know contracts
+    compiledClasses = assembleOutputEntryObject(deployerConfig.entry[environmentSelector], readOutput[environmentSelector], deployerConfig.config.environments[environmentSelector]);
+    outputEnvironment = readOutput[environmentSelector];
+  }
+
   const deployModule = deployerConfig.module;
-  const compiledClasses = deployerConfig.entry[environmentSelector];
   const providedOptions = deployerConfig.config;
 
   // check compiled classes object
@@ -80,7 +93,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
     }
 
     // handle errors
-    if(accountsError) {
+    if (accountsError) {
       throwError(`Error while getting accounts from provider: ${accountsError}`);
     }
 
@@ -104,6 +117,9 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
 
     // construct deploy function
     const deployFunction = function(){
+      var params = [];
+      var previousContractObject = null;
+
       // make args a mutable array, build contract object from args and a contract factory
       const args = Array.prototype.slice.call(arguments);
 
@@ -115,6 +131,11 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
       // build contract object
       const contractObject = args[0];
 
+      // try and get previous contract object from output
+      if (outputEnvironment !== null && outputEnvironment.hasOwnProperty(contractObject.name)) {
+        previousContractObject = outputEnvironment[contractObject.name];
+      }
+
       // check for contract object
       if (typeof contractObject !== 'object' || contractObject === null) {
         return throwError('A contract or object instance does not exist. Please select only set objects or compiled contracts.');
@@ -124,10 +145,9 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
       const contractInterface = JSON.parse(contractObject.interface);
       const contractBytecode = contractObject.bytecode;
       const contractFactory = web3.eth.contract(contractInterface);
-      var params = [];
 
       // has params
-      if(args.length > 1) {
+      if (args.length > 1) {
         params = args.slice(1, args.length);
       }
 
@@ -158,11 +178,13 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
 
         // check if this contract has already been deployed
         function contractIsAlreadyDeployed (presentContractObject, newContractObject) {
-          if (presentContractObject.name === newContractObject.name
+          if (presentContractObject !== null
             && presentContractObject.bytecode === newContractObject.bytecode
+            && presentContractObject.interface === newContractObject.interface
             && presentContractObject.from === newContractObject.from
-            && presentContractObject.params === newContractObject.params
+            && arrayEquals(presentContractObject.params, newContractObject.params)
             && presentContractObject.gas === newContractObject.gas) {
+
             return true;
           }
 
@@ -181,11 +203,70 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
           receipt: null,
         };
 
+        // check and resole final build output
+        function checkAndResolveFinalBuildOutput() {
+            // count all keys in object
+            // this is slightly hacky, the count should be in a stats object
+            var environmentObjectKeyCount = Object.keys(environmentsBuildObject[environmentSelector]).length;
+
+            // write build file
+            if (contractsDeployed >= contractsToBeDeployed
+              && environmentObjectKeyCount == contractsToBeDeployed
+              && useDone === false) {
+              log(`All contracts deployed successfully to environment '${environmentSelector}'!`);
+              callback(null, environmentsBuildObject);
+            }
+        }
+
         // check if the conract deployment promise should be resolved early
         // resolve the deployment early, because this contract has already been deployed
         // its gas, from, bytecode, params, name are all the same
-        if (contractIsAlreadyDeployed(compiledClasses, contractBuildObject)) {
+        if (contractIsAlreadyDeployed(previousContractObject, contractBuildObject)) {
+          log(`Contract '${contractObject.name}' already deployed to environment '${environmentSelector}' bypassing deployment with address '${contractObject.address}' `);
+
+          // increase contracts deployed
+          contractsDeployed += 1;
+
+          // resolve deployment
           resolveDeployment(contractFactory.at(contractObject.address));
+
+          environmentsBuildObject = addContractToBuildObject(environmentsBuildObject,
+            ['from', 'gas', 'transactionHash', 'receipt', 'params'],
+            environmentSelector,
+            contractObject.name,
+            previousContractObject.address,
+            previousContractObject.interface,
+            previousContractObject.bytecode,
+            previousContractObject.transactionHash,
+            previousContractObject.from,
+            previousContractObject.gas,
+            previousContractObject.receipt,
+            previousContractObject.params);
+
+          // check and resolve output
+          return checkAndResolveFinalBuildOutput();
+        } else {
+          // check account balance amount
+          web3.eth.getBalance(selectedAccount, function(getBalanceError, selectedAccountBalance){
+            if (getBalanceError) {
+              return throwError(`Error while getting account balance 'getBalance' of account ${selectedAccount}`);
+            }
+
+            // if the balance of the selected accont is less than the selected gas amount
+            if (selectedAccountBalance.lessThan(selectedGasAmount)) {
+              return throwError(`Account Out of Gas:
+
+                The selected account '${selectedAccount}' does not have enough ether balance to pay for gas costs while deploying contract ${contractObject.name}
+
+                Current Account Balance: ${selectedAccountBalance} wei
+                Selected Gas Amount: ${selectedGasAmount} wei
+
+                -------
+
+                Please fill your selected account with enough ether to pay for the selected gas amount.
+              `);
+            }
+          });
         }
 
         // add txObject
@@ -232,17 +313,7 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
                 receiptObject,
                 paramsInput);
 
-              // count all keys in object
-              // this is slightly hacky, the count should be in a stats object
-              const environmentObjectKeyCount = Object.keys(environmentsBuildObject[environmentSelector]).length;
-
-              // write build file
-              if (contractsDeployed >= contractsToBeDeployed
-                && environmentObjectKeyCount == contractsToBeDeployed
-                && useDone === false) {
-                log(`All contracts deployed successfully to environment '${environmentSelector}'!`);
-                callback(null, environmentsBuildObject);
-              }
+              checkAndResolveFinalBuildOutput();
             });
 
             // resolve deployment
@@ -283,16 +354,8 @@ const deployEnvironment = function(environmentSelector, deployerConfig, callback
   });
 };
 
-// the main deployer object
-const deployer = function(deployerConfig, callback) {
-  // handle undefined callback
-  if (typeof callback !== 'function') {
-    callback = function(e, r) {};
-  }
-
-  // constants
-  const environmentSelector = deployerConfig.output.environment;
-
+// handle environments
+const handleEnvironments = function(deployerConfig, environmentSelector, readOutput, callback) {
   // handle all
   if (environmentSelector == 'all') {
     var deployerOutputObject = {};
@@ -314,13 +377,53 @@ const deployer = function(deployerConfig, callback) {
     }
 
     environmentNames.forEach(function(environmentName){
-      deployEnvironment(environmentName, deployerConfig, combinerCallback);
+      deployEnvironment(environmentName, deployerConfig, readOutput, combinerCallback);
     });
   } else {
     // deploy environment
-    deployEnvironment(environmentSelector, deployerConfig, callback);
+    deployEnvironment(environmentSelector, deployerConfig, readOutput, callback);
+  }
+}
+
+// the main deployer object
+const deployer = function(deployerConfig, callback) {
+  // handle undefined callback
+  if (typeof callback !== 'function') {
+    callback = function(e, r) {};
+  }
+
+  // constants
+  const environmentSelector = deployerConfig.output.environment;
+
+  // get environments JSON from path, if any exists, report if it doesn't
+  if (typeof deployerConfig.output.path !== 'undefined'
+      && deployerConfig.outputAsEntry === true) {
+    fs.readFile(deployerConfig.output.path, 'utf8', function(readOutputError, readOutput) {
+      // parse output object
+      var outputObject = null;
+
+      // handle output file error
+      if (readOutputError) {
+        log(`Error while reading output path as entry: ${readOutputError}`);
+      }
+
+      // handle bad JSON
+      try {
+        outputObject = JSON.parse(readOutput);
+      } catch(outputJSONError) {
+        log(`Error while parsing output JSON as entry: ${outputJSONError}..bypassing with empty object`);
+      }
+
+      // handle environments with output as entry and entry as override
+      handleEnvironments(deployerConfig, environmentSelector, outputObject, callback);
+    });
+  } else {
+    // handle environments with no output as entry input
+    handleEnvironments(deployerConfig, environmentSelector, null, callback);
   }
 };
 
 // export main deployer module
 module.exports = deployer;
+
+console.log('loaded');

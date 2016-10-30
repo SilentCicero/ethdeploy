@@ -78,9 +78,13 @@ const addContractToBuildObject = function(buildObject, buildProperties, provider
 // build provider object for web3
 const buildProvider = function(providerObject, web3Instance) {
   try {
-    const ethdeployHTTPProvider = require(`ethdeploy-provider-${providerObject.type}`);
+    if (typeof providerObject.module === 'undefined') {
+      const ethdeployHTTPProvider = require(`ethdeploy-provider-${providerObject.type}`);
 
-    return ethdeployHTTPProvider(providerObject);
+      return ethdeployHTTPProvider(providerObject);
+    } else {
+      return providerObject.module(providerObject);
+    }
   } catch(buildProviderError) {
     throwError(`Provider error ${buildProviderError} not supported..`);
   }
@@ -124,6 +128,35 @@ const checkWeb3Connectivity = function(web3Instance, environmentSelector) {
   }
 };
 
+// this will assemble the output as an entry object
+const assembleOutputEntryObject = function(entry, output, environment) {
+  var newOutputObject = Object.assign({}, output);
+
+  // handle custom objects
+  if (typeof environment.objects === 'object') {
+    Object.keys(environment.objects).forEach(function (configObjectKey) {
+      const configObjectClass = environment.objects[configObjectKey].class;
+
+      newOutputObject[configObjectKey] = Object.assign({}, output[configObjectKey], {
+        bytecode: entry[configObjectClass].bytecode,
+        interface: entry[configObjectClass].interface,
+        name: configObjectKey,
+      });
+    });
+  }
+
+  // handle contract objects
+  Object.keys(entry).forEach(function (entryKey) {
+    newOutputObject[entryKey] = Object.assign({}, output[entryKey], {
+      bytecode: entry[entryKey].bytecode,
+      interface: entry[entryKey].interface,
+      name: entryKey,
+    });
+  });
+
+  return newOutputObject;
+};
+
 // add objects into classes object
 const addObjectsToClasses = function(classes, objects) {
   // handle types
@@ -135,9 +168,10 @@ const addObjectsToClasses = function(classes, objects) {
 
   Object.keys(objects).forEach(function(objectName) {
     const selectedObject = objects[objectName];
+    var previousClass = classes[objectName] || {};
 
     // class object
-    classesObject[objectName] = Object.assign({}, classes[selectedObject.class]);
+    classesObject[objectName] = Object.assign({}, previousClass, classes[selectedObject.class]);
 
     // add gas from selected object to the classes object
     if (typeof selectedObject.gas !== 'undefined') {
@@ -189,4 +223,5 @@ module.exports = {
   'checkWeb3Connectivity': checkWeb3Connectivity,
   'addObjectsToClasses': addObjectsToClasses,
   'isCompiledClassesObject': isCompiledClassesObject,
+  'assembleOutputEntryObject': assembleOutputEntryObject,
 };

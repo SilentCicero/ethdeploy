@@ -24,6 +24,8 @@ module.exports = {
     testrpc: contracts,
   },
   module: function(deploy, contracts, environment){
+    deploy(contracts.SomeOtherCustomInstance);
+
     deploy(contracts.SimpleStore).then(function(simpleStoreInstance){
       deploy(contracts.SimpleStoreService, simpleStoreInstance.address).then(function(){
         environment.log('Yay!');
@@ -44,6 +46,11 @@ module.exports = {
         },
         'objects': {
           'SomeCustomInstance': {
+            'class': 'SimpleStore',
+            'from': 3, // a custom account
+            'gas': 2900000, // some custom gas
+          },
+          'SomeOtherCustomInstance': {
             'class': 'SimpleStore',
             'from': 3, // a custom account
             'gas': 2900000, // some custom gas

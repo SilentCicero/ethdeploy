@@ -17,6 +17,8 @@ SimpleStoreService:
    solidity_interface: 'contract SimpleStoreService{function SimpleStoreService(address _simpleStore);}' }
  };
 
+const account = require('../../account.json');
+
 module.exports = {
   output: {
     environment: 'morden',
@@ -43,18 +45,18 @@ module.exports = {
           'type': 'zero-client',
           getAccounts: function(cb) {
             // dont include keys anywhere inside or around repo
-            cb(null, [String(require('../../account.json').address)]);
+            cb(null, [String(account.address).toLowerCase()]);
           },
           signTransaction: function(rawTx, cb) {
             // dont include private key info anywhere around repo
-            const privateKey = new Buffer(require('../../account.json').privateKey, 'hex');
+            const privateKey = new Buffer(account.privateKey, 'hex');
 
             // tx construction
             const tx = new Tx(rawTx);
             tx.sign(privateKey);
 
             // callback with buffered serilized signed tx
-            cb(null, ethUtil.bufferToHex(tx.serialize()));
+            cb(null, String(ethUtil.bufferToHex(tx.serialize())));
           },
           'host': 'https://morden.infura.io',
           'port': 8545,

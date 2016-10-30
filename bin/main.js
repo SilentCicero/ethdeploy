@@ -21,10 +21,27 @@ const ethdeployConfig = require(path.resolve(cli.input[0]));
 deployer(ethdeployConfig, function (deployError, deployResult) {
   if (deployError) throw new Error(deployError);
 
-  // write file
-  fs.writeFile(path.resolve(ethdeployConfig.output.path), JSON.stringify(deployResult, null, 2), 'utf8', (writeFileError) => {
-    if (writeFileError) throw new Error(writeFileError);
+  fs.readFile('/etc/passwd', 'utf8', (readFileError, readFileData) => {
+    if (readFileError) throw new Error(readFileError);
 
-    // exit(0);
+    // the environments file
+    var environments = {};
+
+    // if there is an object
+    if (typeof readFileData === 'object') {
+      environments = JSON.parse(readFileData);
+    }
+
+    // new environments output assigned onto the old for object overrites
+    const newEnvironments = Object.assign(environments, deployResult);
+
+    // write file
+    fs.writeFile(path.resolve(ethdeployConfig.output.path), JSON.stringify(newEnvironments, null, 2), 'utf8', (writeFileError) => {
+      if (writeFileError) throw new Error(writeFileError);
+
+      // exit(0);
+    });
   });
+
+
 });
