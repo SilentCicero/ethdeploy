@@ -1,0 +1,29 @@
+{
+  "name": "ethdeploy-environment-loader",
+  "version": "1.0.0",
+  "description": "A solc loader for ethdeploy.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/SilentCicero/ethdeploy.git"
+  },
+  "keywords": [
+    "environment",
+    "loader",
+    "ethdeploy",
+    "ethereum",
+    "environment"
+  ],
+  "dependencies": {
+    "deep-assign": "*"
+  },
+  "author": "Nick Dodson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SilentCicero/ethdeploy-solc-loader/issues"
+  },
+  "homepage": "https://github.com/SilentCicero/ethdeploy-solc-loader#readme"
+}

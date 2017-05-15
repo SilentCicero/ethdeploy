@@ -1,0 +1,23 @@
+{
+  "name": "ethdeploy-example",
+  "version": "1.0.0",
+  "description": "A simple ethdeploy example configuration ",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "node ./node_modules/ethdeploy/bin/ethdeploy.js ./ethdeploy.testrpc.config.js",
+    "start": "npm run deploy && node ./index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ethdeploy",
+    "example"
+  ],
+  "author": "Nick Dodson",
+  "license": "MIT",
+  "dependencies": {
+    "ethdeploy-solc-loader": "file:../src/loaders/solc",
+    "ethdeploy-environment-loader": "file:../src/loaders/environment",
+    "ethdeploy": "file:../",
+    "ethereumjs-testrpc": "*"
+  }
+}

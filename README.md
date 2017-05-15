@@ -21,6 +21,10 @@ Made with ❤︎ by Nick Dodson. If you're using this tool, we'd love to hear fr
 
 Deploy your Ethereum smart-contracts to multiple environments, with a range of configurations, using lightly abstracted promisified deployment staging modules. The end result is an environments object, that contains all configured contract information (e.g. address, receipt, gas, abi, etc.) for each selected environment and their contracts.
 
+Once central purpose of this module is to deploy contracts which need to be deployed, and skip the deployment of contracts which have already been deployed with the same inputs and bytecode.
+
+Note, this module is highly experimental and requires more testing and research before being using on the main network. Use at your own risk.
+
 ## Installation
 
 ```
@@ -29,10 +33,11 @@ npm install --save ethdeploy
 
 ## Example
 
-Checkout the ethdeploy [example](/example/index.js) provided. Run a [testrpc](http://github.com/ethereumjs/ethereumjs-testrpc) instance, then run the example npm command `npm run example`. This will deploy a bunch of contracts with an ethdeploy setup and config.
+Checkout the ethdeploy [example](/example/index.js) provided. This will deploy a bunch of contracts with an ethdeploy setup and config.
 
 ```
-testrpc
+cd example
+npm install
 npm run example
 ```
 
@@ -45,230 +50,283 @@ ethdeploy ./ethdeploy.testnet.js
 
 // or locally as:
 
-node ./node_modules/ethdeploy/bin/main.js ./ethdeploy.testnet.js
+node ./node_modules/ethdeploy/bin/ethdeploy.js ./ethdeploy.testnet.js
 ```
 
-## Input Description
+## Example Deployment Module
 
-Feed `ethdeploy` a deploy module, the compiled contracts and config object and it will deploy your contracts the way you want, where you want it and spit out a single object
-
-  1. `output` the output environmnet, and JSON location
-  2. `entry` the entry environment object, this can also be a collection of compiled contract information
-  3. `module` the deployment schedule "how the contracts will be deployed"
-  4. `config` how the environment configuration
-
-## Example Input Object
+Here we have an example `ethdeploy` deployment configuration module.
 
 ```js
-// in this case, the classes.json is from a `dapple build` result
-const contracts = require('./lib/classes.json');
+const HttpProvider = require('ethjs-provider-http');
 
-module.exports = {
+module.exports = (options) => ({ // eslint-disable-line
+  entry: [
+    './environments.json',
+    './src/tests/contracts',
+  ],
   output: {
-    environment: 'testrpc',
-    path: './build/environments.json',
+    path: './',
+    filename: 'environments.json',
+    safe: true,
   },
-  entry: {
-    testrpc: contracts, // containing {contract: {bytecode: ..., interface: ...}}
-  },
-  module: function(deploy, contracts, environment){
-    /*
-    environment:
-    {
-      doneMethod : function  ...fire if you want the deployment module to stop"
-      web3 : object ...the web3 object instance used during the deployment of that environment
-      log : function ...a built in log function, use to log through the ethdeploy console
-      defaultTxObject : function  ...a generalized transaction object with { gas, from } specified
-      accounts : array ...all the available web3 accounts
-    }
-    */
-
-    deploy(contracts.SimpleStoreRegistry).then(function(simpleStoreRegistry){
-      deploy(contracts.SimpleStoreFactory, simpleStoreRegistry.address).then(function(factoryInstance){
-        deploy(contracts.CustomSimpleStore);
-        deploy(contracts.AnotherCustomSimpleStore).then(function(contractInstance){
-        });
-      });
-    });
-  },
-  config: {
-    defaultAccount: 0,
-    defaultGas: 3000000,
-    environments: {
-      testrpc: {
-        provider: {
-          type: 'http',
-          host: 'http://localhost',
-          port: 8545,
-        },
-        objects: {
-          CustomSimpleStore: {
-            class: 'SimpleStore',
-            from: 2, // a custom account
-            gas: 2900000, // some custom gas
-          },
-          AnotherCustomSimpleStore: {
-            class: 'SimpleStore',
-            from: 1, // a custom account
-            gas: 2900000, // some custom gas
-          },
-        },
+  module: {
+    environment: {
+      name: 'localtestnet',
+      provider: new HttpProvider('http://localhost:8545'),
+      defaultTxObject: {
+        from: 1,
+        gas: 3000001,
       },
     },
+    preLoaders: [
+      { test: /\.(json)$/, loader: 'ethdeploy-environment-loader' },
+    ],
+    loaders: [
+      { test: /\.(sol)$/, loader: 'ethdeploy-solc-loader', optimize: 1 },
+    ],
+    deployment: (deploy, contracts, done) => {
+      deploy(contracts.SimpleStore, { from: 0 }).then(() => {
+        done();
+      });
+    },
   },
+  plugins: [
+    new options.plugins.JSONFilter(),
+    new options.plugins.JSONMinifier(),
+  ],
+});
+```
+
+Here we have a simple configuraton loading in previous contract builds, and new contract data. The deployment module just deploys the single contract and fires the `done` method, which will then output the result in an `environments.json` file as specified by the `config` output. The `solc` loader loads new contract data from `.sol` files, while the `environments` loader processes data from `.json` files. The default environment states that account `1` should be used to deploy contracts, while in deployment, the developer state they want the `SimpleStore` contract to be deployed from account `0`.
+
+## Config Module Description
+
+Ethdeploy modules are `Object`s or `Funtion`s, much like webpack modules. You specify a single deployment environment per file. This includes the inputs, loaders, environment, deployment schedule and output. This follows in some way the webpack data processing flow, from entry, to output.
+
+```js
+module.exports = {
+  entry: [],        // entry data, usually paths to files or directors
+  output: {},       // output specifications, output file name etc
+  module: {},       // the deployment configuration, environment, deployment schedule
+  plugins: {},      // plugins that format output data, do special things
 };
 ```
 
-## Example Output JSON
+### Entry
 
-This is the example output JSON. The output notates all the contract information, deployment receipt information and any paramater data that was entered. This simplifies all data, so we know exactly all contract inputs and outputs.
+The module entry is usually file or directory paths, but can actually be any kind of object. If you would like to use your own custom object, you can specify your own `module.sourceMapper` which will help produce a sourcemap of the entry for loaders to intake.
 
-```json
-{
-  "testnet": {
-    "OpenRules": {
-      "address": "0xd8afb4ea770326de3a7bad543298cc57dc8d8ba8",
-      "gas": 3000000,
-      "params": [],
-      "bytecode": "6060604052610275806100126000396000f360606040526000357c01000000000000000000000000000000000000000000000000000000009004806319eb8d481461005a57806342b4632e1461009157806360dddfb1146100bf57806375eeadc3146100f457610058565b005b6100796004808035906020019091",
-      "interface": "[{\"constant\":true,\"inputs\":[{\"name\":\"_sender\",\"type\":\"address\"},{\"name\":\"_proposalID\",\"type\":\"uint256\"}],\"name\":\"canVote\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_sender\",\"type\":\"address\"}],\"name\":\"canPropose\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_sender\",\"type\":\"address\"},{\"name\":\"_proposalID\",\"type\":\"uint256\"}],\"name\":\"votingWeightOf\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"}],\"name\":\"hasWon\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"type\":\"function\"}]",
-      "from": "0xe4660fdab2d6bd8b50c029ec79e244d132c3bc2b",
-      "transactionHash": "0x3c42658bc9c6e926a367bbec5c685af8f79fd9f233ffc1cf546f71af5313c450",
-      "receipt": {
-        "blockHash": "0xd62e93a24b0d3fd555146f415df6ce7639a464ac345c74e4b0232b37bce71571",
-        "blockNumber": 1772977,
-        "contractAddress": "0xd8afb4ea770326de3a7bad543298cc57dc8d8ba8",
-        "cumulativeGasUsed": 215967,
-        "gasUsed": 215967,
-        "logs": [],
-        "transactionHash": "0x3c42658bc9c6e926a367bbec5c685af8f79fd9f233ffc1cf546f71af5313c450",
-        "transactionIndex": 0
-      }
+### Output
+
+The output specifies information about the output file or object. Usually things like the output filename.
+
+### Module
+
+The module is where you specify all your deployment environment and schedule. This is where the action happens for `ethdeploy`.
+
+### Plugins
+
+Plugins help format the output which is usually JSON. It processes output data into a format that you want.
+
+## Data Processing Flow
+
+`ethdeploy` is designed to help load and deploy your Ethereum contracts, then output the data (in a file or object). The data process flow is at first glass complicated, but is designed for complete configuratbility of contract deployment of Ethereum contracts. Here is the `ethdeploy` data processing flow. In simple terms, `ethdeploy` intakes the configuration module, and should output a single data output/file.
+
+Stages of processing:
+
+  1. [source mapping of entry] : source map all entry data into a single output source map object
+  2. [environment configuration] : configure environment (load accounts, set gas and defaults)
+  3. [pre loader processing] : load all pre configured data such as previous builds/deployments
+  4. [loader processing] : load all new data, like new contract bytecode or interfaces
+  5. [deployment module processing] : run the module.deployment method, which will trigger the deployment process
+  6. [output plugin processing] : run the specified output plugins if any
+  7. [final data write/output] : write the final output object/data
+
+## `ethdeploy` module
+
+The `ethdeploy` module can be required and used in normal nodejs javascript contexts. `ethdeploy` should also be able to be used client-side in the browser, although this has not beed tested yet. Here is the `ethdeploy` using in a nodejs context. The module simply intakes the config file and returns a standard callback result.
+
+```js
+const ethdeploy = require('ethdeploy');
+const deploymentConfig = require('ethdeploy.testrpc.config.js');
+
+ethdeploy(deploymentConfig, (err, result) => {
+  console.log(err, result);
+});
+```
+
+## Loaders
+
+Ethdeploy has a simple loader API that allows you to build or plugin existing loaders. There are two kinds of loaders, `preLoaders` and `loaders`. PreLoaders are for pre data change loading, such as loading in previous environments or deployment data. The loaders are for loading in new contract data like new build data from a recent solc build. The loader loads in a sourceMapped data object from the module sourcemapper, then spits out a environment JSON structure object.
+
+Exmaple loader:
+
+```js
+/**
+ * Loads an environments.json file, produced by ethdeploy
+ *
+ * @method loader
+ * @param {Object} sourceMap the file source map
+ * @param {Object} loaderConfig the config for the specified loader
+ * @param {Object} environment the loaded environment object
+ * @return {Object} contracts the output contracts object
+ */
+module.exports = function loader(sourceMap, loaderConfig, environment) { // eslint-disable-line
+  // loader code
+}
+```
+
+### Available Loaders:
+
+Here are some available loaders. The `environment` and `solc` loaders are most likely the ones you would use the most (i.e. loading your previous deployments and your new contract builds).
+
+  - `ethdeploy-environment-loader`: loads standard ethdeploy environment files (for loading previous deployments)
+  - `ethdeploy-solc-loader`: compiles `.sol` Ethereum contracts for ethdeploy (for loading solc contract data)
+  - `ethdeploy-solc-json-loader`: loads and processes solc-json files (the output from solc as a JSON)
+
+## Plugins
+
+Plugins help format the output data, they simple intake the data string (usually a JSON string) and format that data however the developer wants. The most used plugin is the JSON minifier plugin which just minifies the outputted JSON information. There is a default set of plugins which are fed in through the ethdeploy method options input. See the `example` for more details.
+
+Here is the JSON Minifier plugin:
+
+```js
+/**
+ * Minifies JSON output
+ *
+ * @method JSONMinifier
+ * @param {String} output the final build file produced by ethdeploy
+ * @return {String} parsedOutput parsed output
+ */
+function JSONMinifier() {
+  const self = this;
+  self.process = (output) => JSON.stringify(JSON.parse(output));
+}
+```
+
+### Available Plugins
+
+Here are some available plugins for `ethdeploy`. The main one will most likely be the `JSONMinifier` plugin, used to minify output JSON. Note, these plugins come with ethdeploy and are fed in through the options object of your deployment module (if you use a type `Function` module).
+
+  - `JSONMinifier`: minifies output JSON from ethdeploy
+  - `JSONExpander`: expands output JSON from ethdeploy
+  - `JSONFilter`: filters the JSON output to `address`, `bytecode`, `interface`, `transactionObject` and `inputs` properties.
+
+## Deployment Modules
+
+The `ethdeploy` config allows you to specify your deployment in the `module` object. Within this module are a few critical configuration requirements. In your module you must specify a `environment`, and `deployment` function. Loaders should also be used to load in the entry data into the deployment module. The loaders will intake data loaded in from the source mapping stage, and output the final data to the `contracts` object used in `module.deployment`. The `deploy` method intakes the formatted contract data, compares it with what was loaded at the preLoaded stage, if there are different properties like `bytecode` or new contracts, it will deploy those, otherwise it will skip and return the exiting contract instance. Once the deployment module is done, the `done` method should be fired, to trigger the output processing.
+
+Example:
+
+```js
+module: {
+  environment: {
+    name: 'localtestnet',
+    provider: new HttpProvider('http://localhost:8545'),
+    defaultTxObject: {
+      from: 1,
+      gas: 3000001,
     },
-    "BoardRoom": {
-      "address": "0xde49daec21ca54c5cd941f7ac1ee97869675f799",
-      "gas": 3000000,
-      "params": [
-        "0xd8afb4ea770326de3a7bad543298cc57dc8d8ba8"
-      ],
-      "bytecode": "606060405260405160208061150a833981016040528080519060200190919050505b80600160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908302179055505b506114ae8061005c6000396000f3606060405236156100c1576000357c010000000000000000000000000000000000000000000000000000000090048063013cf08b146100c3578063400e3949146101d457806343859632146101f7",
-      "interface": "[{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"proposals\",\"outputs\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"destination\",\"type\":\"address\"},{\"name\":\"proxy\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"},{\"name\":\"hash\",\"type\":\"bytes32\"},{\"name\":\"executed\",\"type\":\"bool\"},{\"name\":\"debatePeriod\",\"type\":\"uint256\"},{\"name\":\"created\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"numProposals\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"name\":\"_voter\",\"type\":\"address\"}],\"name\":\"hasVoted\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"name\":\"_voter\",\"type\":\"address\"}],\"name\":\"voteOf\",\"outputs\":[{\"name\":\"position\",\"type\":\"uint256\"},{\"name\":\"weight\",\"type\":\"uint256\"},{\"name\":\"created\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"rules\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"execute\",\"outputs\":[],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"name\":\"_position\",\"type\":\"uint256\"}],\"name\":\"positionWeightOf\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_destination\",\"type\":\"address\"}],\"name\":\"destructSelf\",\"outputs\":[],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"name\":\"_voteID\",\"type\":\"uint256\"}],\"name\":\"voterAddressOf\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"}],\"name\":\"numVoters\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"name\":\"_position\",\"type\":\"uint256\"}],\"name\":\"vote\",\"outputs\":[{\"name\":\"voterWeight\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_rules\",\"type\":\"address\"}],\"name\":\"changeRules\",\"outputs\":[],\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_name\",\"type\":\"string\"},{\"name\":\"_proxy\",\"type\":\"address\"},{\"name\":\"_debatePeriod\",\"type\":\"uint256\"},{\"name\":\"_destination\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"},{\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"newProposal\",\"outputs\":[{\"name\":\"proposalID\",\"type\":\"uint256\"}],\"type\":\"function\"},{\"inputs\":[{\"name\":\"_rules\",\"type\":\"address\"}],\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"_destination\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"ProposalCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"_position\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"_voter\",\"type\":\"address\"}],\"name\":\"VoteCounted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"_proposalID\",\"type\":\"uint256\"},{\"indexed\":false,\"name\":\"_sender\",\"type\":\"address\"}],\"name\":\"ProposalExecuted\",\"type\":\"event\"}]",
-      "from": "0xe4660fdab2d6bd8b50c029ec79e244d132c3bc2b",
-      "transactionHash": "0x863c12d0c2efe021fef8f30770cbc39859089b2e67d61258c1721cce90826517",
-      "receipt": {
-        "blockHash": "0x098ed2db2c63b3f75de6bb7ce74273c093159122a8da477efb46f487f06c5c02",
-        "blockNumber": 1772980,
-        "contractAddress": "0xde49daec21ca54c5cd941f7ac1ee97869675f799",
-        "cumulativeGasUsed": 1492722,
-        "gasUsed": 1471722,
-        "logs": [],
-        "transactionHash": "0x863c12d0c2efe021fef8f30770cbc39859089b2e67d61258c1721cce90826517",
-        "transactionIndex": 1
-      }
+  },
+  preLoaders: [
+    { test: /\.(json)$/, loader: 'ethdeploy-environment-loader' },
+  ],
+  loaders: [
+    { test: /\.(sol)$/, loader: 'ethdeploy-solc-loader', optimize: 1 },
+  ],
+  deployment: (deploy, contracts, done) => {
+    deploy(contracts.SimpleStore, 'constructor argument 1', 'argument 2...', { from: 0 }).then(() => {
+      done();
+    });
+  },
+},
+```
+
+### environment
+
+The environment specifies your deployment env. provider, name and default transaction object.
+
+### preLoaders
+
+The pre-loaders load all previous deployment information, such as previous contract builds or deployoments.
+
+### loaders
+
+The loaders load all current contract builds, such as new solc contracts or new contract bytecode.
+
+### deployment
+
+The deployment module is where the contract deployment schedule is specified. This is where the main action happens for contract deployment. The `deploy` method is used to deploy pre-formatted `contracts` data. Once the process is completed, the `done` method should be fired to complete the process.
+
+## Deloyment Scheduling
+
+Ethdeploy allows you to specify your own complex deployment schedule. The inputs provided to the deployment property are `deploy`, `contracts`, `done` and `environment`. The `deploy` method is used to deploy the contract object. The `contracts` object is fed in by the loaders, and is used by the `deploy` method to deploy the contracts. The `done` method should be fired at the end of deployment to stop the deployment process and begin the outputting process. The `environment` object is used for including environmental information into your schedule like accounts, balances and other things of this sort.
+
+Basic Example:
+
+```js
+deployment: (deploy, contracts, done) => {
+  deploy(contracts.SimpleStore).then(() => {
+    done();
+  });
+},
+```
+
+Here we have a very basic deployment schedule. This will deploy contract SimpleStore with the `deploy` method. Then once the contract is deployed, the `done` method is fired.
+
+
+Complex Example:
+
+```js
+deployment: (deploy, contracts, done) => {
+  deploy(contracts.SimpleStore, 45, 'My Simple Store', { from: 0 }).then((contractInstance) => {
+    deploy(contracts.StandardToken, contractInstance.address).then(() => {
+      done();
+    });
+  });
+},
+```
+
+Here we have a more complex example. The first contract `SimpleStore` is being deployed with two constructor arguments, (1) the value `45` and (2) the String `'My Simple Store'`. Contract `SimpleStore` is being deployed from account `0`, as specified by the transaction object `{ from: 0 }`. Then once `SimpleStore` is deployed, the StandardToken contract is being deployed with a single constructor argument, the address of the newly deployed `SimpleStore` contract instance. Once the `StandardToken` contract is deployed, the `done` method is fired to end the deployment schedule.
+
+This is a more complex deployment example, where one contract relies on the others address for deployment. Also note that if SimpleStore had beed deployed previously for example, the outputted environment was loaded back into `ethdeploy`, it would not be redeployed if all inputs are the same. The inputs to re-interate are: `address`, `transactionObject`, `bytecode`, `inputs` and `interface`. If any of these values had changed, then the `SimpleStore` contract would re-deploy, otherwise the contractInstance retured is simply that of the previously deployed contract.
+
+## Environments Object (the output object)
+
+`ethdeploy` will output your contracts either as an object within execution or to a file system, if used in the CLI. The final object output follows a very simple organizational pattern. Namely, envrionment, then contracts. A single environments output can contain multiple environments and multiple deployments of different contracts within each environment.
+
+Example output:
+
+```js
+{
+  "ropsten": {
+    "SimpleStore": {
+      "address": "0x..",
+      "bytecode": "0x..",
+      "interface": "[{}]",
+    },
+    "SimpleStoreFactory": {
+      "address": "0x..",
+      "bytecode": "0x..",
+      "interface": "[{}]",
     }
   }
 }
 ```
 
-## Redeployment Staging
+Above, we see that there is the environment ropsten and the subsequent contracts deployed to environment `ropsten`. From this object, you would either include or `require` the object into your dApp, where it can be used by the front end.
 
-ethdeploy will not redeploy a contract if the entry input data is equal to the input data specified in the module. This means, if the contract `params`, `from` address, `bytecode`, `gas` and `interface` properties are the same as the new module input data, the contract will not be redeployed. Instead a contract instance will be used at the previsouly deployed contract address, with the specified interface. This way, if you have contracts in a deployment chain and some have the same inputs, they will not be redeployed, however, the complex deployment staging module will still continue as if they were deployed.
+The common properties used by `ethdeploy` in the outputted environments JSON are:
 
-Example:
-```
-  module: function(deploy, contracts, environment){
-    deploy(contracts.SimpleStore).then(function(simpleStoreInstance){
-      deploy(contracts.SimpleStoreService, simpleStoreInstance.address).then(function(){
-        environment.log('Yay!');
-      });
-    });
-  },
-  ...
-```
+  1. `address`             {String} the address of the deployed contract instance
+  2. `transactionObject`   {Object} the transaction object used to deploy that contract instance
+  3. `bytecode`            {String} the Ethereum virtual machine code (bytecode) of that contract instance
+  4. `inputs`              {Array}  the inputs used to deploy that contract (with numbers formatted as hex base 16)
+  5. `interface`           {String} the interface of the contract, specified as a JSON string
 
-In this example, if the `SimpleStore` contract bytecode where to change, then both the `SimpleStore` and `SimpleStoreService` contracts would have to be redeployed. Because the `bytecode` input has changed from the previous deployment, and so both contracts will be deployed.
+These properties are both outputed by ethdeploy and looked at by the default deployment method `deploy` when the deployment schedule is being used.
 
-However, if the `SimpleStoreService` contract `bytecode` were to change, only the `SimpleStoreService` contract would need to be redeployed, as the input of the `SimpleStore` contract has not changed, and will be subsequently bypassed and `simpleStoreInstance` would just return an instance of the already deployed `SimpleStore` contract.
+### License
 
-## Ethdeploy Output As Entry Option
-
-ethdeploy has a single prominent feature (to be replaced eventually by a plugin or loader) which is the `outputAsEntry` option. By setting `outputAsEntry` to `true` in your config module, ethdeploy will read your `output.path` module (if any), and use this as the base `entry` on which the specified `entry` module will `Object.assign` too. Note, this cleaver feature is a work around for now, while better plugin and loader systems are designed for ethdeploy. The main use for this feature is to enable a raw contract data input flow from your build staging (e.g. `solc`, `dapple`, `truffle` etc..), and a consideration of previously deployed contracts from your `environments.json`. The `outputAsEntry` option must be explicitly set to true in order to be used.
-
-See: `examples/ethdeloy.outputAsEntry.config.js` for more details.
-
-## Client-Side Support
-
-The ethdeploy module can be used completely on the client-side. This allows you to orchestrate complex contract deployment on the client-side. Check the `examples/index.html` file for more details. Be sure to run a `TestRPC` instance before running the `index.html` file in your browser.
-
-If you want to use ethdeploy in the browser, make sure to remove the `output.path` from your config modules `output`. You must also specify your provider modules by hand, by specifying the `provider.module` property. See: `examples/index.html` for more details on client-side configuration.
-
-If you include the `dist/ethdeploy.js` module, along with the necessary provider modules, you can acces the `ethdeploy` module by using `window.ethdeploy` (and `window.ethdeployProviderHTTP` etc.).
-
-To browserify ethdeploy, simply run:
-```
-npm run browserify
-```
-
-All client-side modules can be found in the `dist` directory.
-
-Note, more explicit `clientSide` property specifiers may be required in the future.
-
-## Ethdeploy Provider Module System
-
-ethdeploy allows you to build your own provider modules. At this point, ethdeploy provider modules must be prefixed in a specific way. If your provider `type` is specified as "http" for example, the npm module "ethdeploy-provider-http" must be installed, as it will be `require`d and used in the deployment staging. Note, this provider module naming convention will be less opinionated in the future.
-
-The provider module API is as follows:
-
-```js
-module.exports = function(providerObject) {
-  return // Your web3 provider object
-}
-```
-
-Here, `providerObject` is simply the object specified in the ethdeploy environment config, here is a standard web3 HTTP provider for example:
-
-```js
-'provider': {
-  'type': 'http',
-  'host': 'http://localhost',
-  'port': 8545,
-},
-```
-
-Where the provider `type` property is actually specifying the provider module (e.g. `http` => `ethdeploy-provider-http`). This design pattern is once again similar to the `webpack` loader system.
-
-## Environment Selection
-You can either deploy to "all" or a specific environment by setting the `environment` property.
-
-```
-environment: 'testrpc',
-```
-
-## Providers
- - [ethdeploy-provider-http](http://github.com/silentcicero/ethdeploy-provider-http)
- - [ethdeploy-provider-zero-client](http://github.com/silentcicero/ethdeploy-provider-zero-client)
-
-## Future Todo/Design Considerations
- - Don't use promises by default for deployment staging (allow users to make plugins for this)
- - Enable pre-loader and post-loader staging for contract deployment
- - Enable promisified or sync classes object return
- - Great unit tests ;)
- - Make configuration more awesome (the current intake input is cool, but could be far more configurable)
- - Make provider module naming conventions/requirements less opinionated
-
-## Deploying To Testnet/Livenet
- You can now easily deploy contracts off ethdeploy using the [ethdeploy-provider-zero-client](http://github.com/ethdeploy-provider-zero-client). See the `example/ethdeploy-zero-client.config.js` for more configuration details.
-
-## Design Philosophy
- - Unix Philosophy
- - Webpack like (hard to setup, awesome when it's working =D)
-
-## Things We Would Like To Use and Be Compatible With `ethdeploy`
-  - Truffle
-  - Dapple
-  - Embark
-  - Any other frameworks..
-
-## Licence
-
-Released under the MIT License, see [LICENSE.md](LICENSE.md) file.
+This module is under The MIT License. Please see the `LICENCE` file for more details.
