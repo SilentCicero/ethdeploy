@@ -1,6 +1,6 @@
 {
   "name": "ethdeploy",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "A highly configurable contract deployment and staging utiltiy.",
   "main": "lib/index.js",
   "files": [
@@ -10,6 +10,9 @@
     "lib",
     "src"
   ],
+  "bin": {
+    "ethdeploy": "./bin/ethdeploy.js"
+  },
   "scripts": {
     "start": "npm test",
     "release": "npmpub",

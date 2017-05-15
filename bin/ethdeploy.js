@@ -3,8 +3,8 @@
 const meow = require('meow');
 const path = require('path');
 const fs = require('fs');
-const ethdeploy = require('../lib/index.js');
-const log = require('../lib/utils/index.js').log;
+const ethdeploy = require('../src/index.js');
+const log = require('../src/utils/index.js').log;
 
 function noop2Callback(v, d, cb) {
   cb(null, null);

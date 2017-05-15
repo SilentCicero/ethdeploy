@@ -1,5 +1,5 @@
 const TestRPC = require('ethereumjs-testrpc'); // eslint-disable-line
-const HttpProvider = require('ethjs-provider-http');
+// const HttpProvider = require('ethjs-provider-http');
 
 module.exports = (options) => ({ // eslint-disable-line
   entry: [
@@ -14,7 +14,7 @@ module.exports = (options) => ({ // eslint-disable-line
   module: {
     environment: {
       name: 'testrpc',
-      provider: new HttpProvider('http://localhost:8545'), // TestRPC.provider(),
+      provider: TestRPC.provider(),
       defaultTxObject: {
         from: 1,
         gas: 3000001,
@@ -24,7 +24,7 @@ module.exports = (options) => ({ // eslint-disable-line
       { test: /\.(json)$/, loader: 'ethdeploy-environment-loader', build: true },
     ],
     loaders: [
-      { test: /\.(sol)$/, loader: 'ethdeploy-solc-loader', optimize: 1 },
+      { test: /\.(sol)$/, exclude: /(test\.)/, loader: 'ethdeploy-solc-loader', optimize: 1 },
     ],
     deployment: (deploy, contracts, done) => {
       deploy(contracts.SimpleStore, { from: 0 }).then(() => {

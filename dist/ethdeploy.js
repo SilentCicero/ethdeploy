@@ -6095,20 +6095,24 @@ function bnToString(objInput, baseInput, hexPrefixed) {
  * @param {Object} sourceMap the complete file sourcemap
  * @return {Object} filteredSourceMap the filtered sourcemap
  */
-function filterSourceMap(testRegex, includeRegex, sourceMap) {
+function filterSourceMap(testRegex, includeRegex, sourceMap, excludeRegex) {
   var outputData = Object.assign({});
   var testTestRegex = testRegex || /./g;
   var testIncludeRegex = includeRegex || /./g;
+  var testExcludeRegex = excludeRegex || null;
 
   if (typeof testTestRegex !== 'object') {
     throw error('while filtering source map, ' + JSON.stringify(sourceMap) + ', test regex must be type object, got ' + typeof testRegex + '.');
   }
   if (typeof testIncludeRegex !== 'object') {
-    throw error('while filtering source map, ' + JSON.stringify(sourceMap) + ', test regex must be type object, got ' + typeof testIncludeRegex + '.');
+    throw error('while filtering source map, ' + JSON.stringify(sourceMap) + ', include regex must be type object, got ' + typeof testIncludeRegex + '.');
+  }
+  if (typeof testExcludeRegex !== 'object') {
+    throw error('while filtering source map, ' + JSON.stringify(sourceMap) + ', exclude regex must be type object, got ' + typeof testExcludeRegex + '.');
   }
 
   Object.keys(sourceMap).forEach(function (key) {
-    if (testTestRegex.test(key) && testIncludeRegex.test(key)) {
+    if (testTestRegex.test(key) && testIncludeRegex.test(key) && (testExcludeRegex === null || !testExcludeRegex.test(key))) {
       if (sourceMap[key]) {
         outputData[key] = sourceMap[key];
       }
@@ -6657,7 +6661,7 @@ function loadContracts(loaders, base, sourceMap, environment, callback) {
       var loader = requireLoader(loaderConfig);
 
       // filtered sourcemap based on regex/include
-      var filteredSourceMap = filterSourceMap(loaderConfig.test, loaderConfig.include, sourceMap);
+      var filteredSourceMap = filterSourceMap(loaderConfig.test, loaderConfig.include, sourceMap, loaderConfig.exclude);
 
       // get loaded contracts
       var loadedEnvironment = loader(cloneDeep(filteredSourceMap), loaderConfig, environment);

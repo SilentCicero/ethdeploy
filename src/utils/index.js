@@ -79,16 +79,18 @@ function bnToString(objInput, baseInput, hexPrefixed) {
  * @param {Object} sourceMap the complete file sourcemap
  * @return {Object} filteredSourceMap the filtered sourcemap
  */
-function filterSourceMap(testRegex, includeRegex, sourceMap) {
+function filterSourceMap(testRegex, includeRegex, sourceMap, excludeRegex) {
   const outputData = Object.assign({});
   const testTestRegex = testRegex || /./g;
   const testIncludeRegex = includeRegex || /./g;
+  const testExcludeRegex = excludeRegex || null;
 
   if (typeof testTestRegex !== 'object') { throw error(`while filtering source map, ${JSON.stringify(sourceMap)}, test regex must be type object, got ${typeof testRegex}.`); }
-  if (typeof testIncludeRegex !== 'object') { throw error(`while filtering source map, ${JSON.stringify(sourceMap)}, test regex must be type object, got ${typeof testIncludeRegex}.`); }
+  if (typeof testIncludeRegex !== 'object') { throw error(`while filtering source map, ${JSON.stringify(sourceMap)}, include regex must be type object, got ${typeof testIncludeRegex}.`); }
+  if (typeof testExcludeRegex !== 'object') { throw error(`while filtering source map, ${JSON.stringify(sourceMap)}, exclude regex must be type object, got ${typeof testExcludeRegex}.`); }
 
   Object.keys(sourceMap).forEach((key) => {
-    if (testTestRegex.test(key) && testIncludeRegex.test(key)) {
+    if (testTestRegex.test(key) && testIncludeRegex.test(key) && (testExcludeRegex === null || !testExcludeRegex.test(key))) {
       if (sourceMap[key]) {
         outputData[key] = sourceMap[key];
       }

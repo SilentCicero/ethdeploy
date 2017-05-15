@@ -100,6 +100,25 @@ module.exports = (options) => ({ // eslint-disable-line
 
 Here we have a simple configuraton loading in previous contract builds, and new contract data. The deployment module just deploys the single contract and fires the `done` method, which will then output the result in an `environments.json` file as specified by the `config` output. The `solc` loader loads new contract data from `.sol` files, while the `environments` loader processes data from `.json` files. The default environment states that account `1` should be used to deploy contracts, while in deployment, the developer state they want the `SimpleStore` contract to be deployed from account `0`.
 
+This module will produce JSON like this:
+
+```js
+{
+  "localtestnet": {
+    "SimpleStore": {
+      "bytecode": "0x...",
+      "interface": "[{....}]",
+      "address": "0x3a70a6765746af3bfa974fff9d753d4b6c56b333",
+      "inputs": [],
+      "transactionObject": {
+        "from": "0x7f3e74e3dbb4091973ea1b449692c504c35ef768",
+        "gas": 3000001
+      }
+    }
+  }
+}
+```
+
 ## Config Module Description
 
 Ethdeploy modules are `Object`s or `Funtion`s, much like webpack modules. You specify a single deployment environment per file. This includes the inputs, loaders, environment, deployment schedule and output. This follows in some way the webpack data processing flow, from entry, to output.
@@ -185,6 +204,16 @@ Here are some available loaders. The `environment` and `solc` loaders are most l
   - `ethdeploy-solc-loader`: compiles `.sol` Ethereum contracts for ethdeploy (for loading solc contract data)
   - `ethdeploy-solc-json-loader`: loads and processes solc-json files (the output from solc as a JSON)
 
+### Loader Config
+
+Ethdeploy loaders, much like webpack loaders, use regex to test if the sourcemap presented should be laoded by the required loader module. There are three regex properties you can use to select the correct files for your loader.
+
+ - `test`: regex test must be positive to include in loader
+ - `include`: regex test must be positive or null to include in loader
+ - `exclude`: if specified, file path must be negative against this test to include in loader
+
+Sometimes you want specific files to be excluded from specific loaders, like tests in final build and deployment. The `exclude` test is good for this, it allows you to do things like exclude Solidity test files from final build deployment.
+
 ## Plugins
 
 Plugins help format the output data, they simple intake the data string (usually a JSON string) and format that data however the developer wants. The most used plugin is the JSON minifier plugin which just minifies the outputted JSON information. There is a default set of plugins which are fed in through the ethdeploy method options input. See the `example` for more details.
@@ -236,9 +265,7 @@ module: {
     { test: /\.(sol)$/, loader: 'ethdeploy-solc-loader', optimize: 1 },
   ],
   deployment: (deploy, contracts, done) => {
-    deploy(contracts.SimpleStore, 'constructor argument 1', 'argument 2...', { from: 0 }).then(() => {
-      done();
-    });
+    deploy(contracts.SimpleStore, 'constructor argument 1', 'argument 2...', { from: 0 }).then(() => done());
   },
 },
 ```
@@ -267,9 +294,7 @@ Basic Example:
 
 ```js
 deployment: (deploy, contracts, done) => {
-  deploy(contracts.SimpleStore).then(() => {
-    done();
-  });
+  deploy(contracts.SimpleStore).then(() => done());
 },
 ```
 
@@ -280,11 +305,9 @@ Complex Example:
 
 ```js
 deployment: (deploy, contracts, done) => {
-  deploy(contracts.SimpleStore, 45, 'My Simple Store', { from: 0 }).then((contractInstance) => {
-    deploy(contracts.StandardToken, contractInstance.address).then(() => {
-      done();
-    });
-  });
+  deploy(contracts.SimpleStore, 45, 'My Simple Store', { from: 0 })
+  .then((contractInstance) => deploy(contracts.StandardToken, contractInstance.address))
+  .then(done);
 },
 ```
 
@@ -326,6 +349,11 @@ The common properties used by `ethdeploy` in the outputted environments JSON are
   5. `interface`           {String} the interface of the contract, specified as a JSON string
 
 These properties are both outputed by ethdeploy and looked at by the default deployment method `deploy` when the deployment schedule is being used.
+
+Other additional properties are:
+
+  1. `receipt`             {Object} the transaction receipt data
+  2. `assembly`            {Object} the contract assembly code
 
 ### License
 

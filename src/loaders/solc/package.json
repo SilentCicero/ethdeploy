@@ -22,5 +22,8 @@
   "bugs": {
     "url": "https://github.com/SilentCicero/ethdeploy-solc-loader/issues"
   },
+  "dependencies": {
+    "solc": "*"
+  },
   "homepage": "https://github.com/SilentCicero/ethdeploy-solc-loader#readme"
 }
