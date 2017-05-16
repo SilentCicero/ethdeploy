@@ -72,6 +72,12 @@ module.exports = function ethdeploy(config, callbackInput) { // eslint-disable-l
         loadContracts(moduleLoaders, baseContracts, sourceMap, environment, (loaderError, contracts) => { // eslint-disable-line
           if (loaderError !== null) { return callback(error(loaderError), null); }
 
+          // scoped base contracts
+          const scopedBaseContracts = transformContracts(baseContracts, environment.name);
+
+          // scope the contracts only to the environment being deployed
+          const scopedContracts = transformContracts(contracts, environment.name);
+
           // build done method
           const doneMethod = () => {
             const finalOutput = Object.assign({}, cloneDeep(baseContracts), {
@@ -79,7 +85,7 @@ module.exports = function ethdeploy(config, callbackInput) { // eslint-disable-l
             });
 
             // final output processing with plugins
-            processOutput(plugins, finalOutput, configObject, (pluginError, outputString) => {
+            processOutput(plugins, finalOutput, configObject, scopedBaseContracts, scopedContracts, environment, (pluginError, outputString) => {
               if (pluginError) {
                 callback(pluginError, null);
               } else {
@@ -89,12 +95,6 @@ module.exports = function ethdeploy(config, callbackInput) { // eslint-disable-l
 
             utils.log('Deployment module completed!');
           };
-
-          // scoped base contracts
-          const scopedBaseContracts = transformContracts(baseContracts, environment.name);
-
-          // scope the contracts only to the environment being deployed
-          const scopedContracts = transformContracts(contracts, environment.name);
 
           // build deploy method
           const deployMethod = buildDeployMethod(scopedBaseContracts, environment, reportMethod);

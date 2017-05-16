@@ -230,7 +230,7 @@ Here is the JSON Minifier plugin:
  */
 function JSONMinifier() {
   const self = this;
-  self.process = (output) => JSON.stringify(JSON.parse(output));
+  self.process = ({ output, baseContracts, contracts, environment }) => JSON.stringify(JSON.parse(output));
 }
 ```
 
@@ -241,6 +241,58 @@ Here are some available plugins for `ethdeploy`. The main one will most likely b
   - `JSONMinifier`: minifies output JSON from ethdeploy
   - `JSONExpander`: expands output JSON from ethdeploy
   - `JSONFilter`: filters the JSON output to `address`, `bytecode`, `interface`, `transactionObject` and `inputs` properties.
+  - `IncludeContracts` includes selected contracts from the build process and includes them in a special `contracts` environment
+
+#### IncludeContracts Plugin
+
+This is an overview of the important IncludeContracts plugin. This plugin is used to include certain contracts that you may not need to deploy, but do need to include the interface or bytecode of for your dApp.
+
+Example in Use:
+
+```js
+
+plugins:
+  new options.plugins.IncludeContracts(['SimpleStoreInterface', 'Token', 'Proxy']),
+
+  new options.plugins.JSONFilter(),
+  new options.plugins.JSONMinifier(),
+],
+```
+
+Here we see the IncludeContracts plugin including the interface to the `SimpleStore` contract and the `Token` interface and the `Proxy` contract. This will then produce an output object like this:
+
+```js
+{
+  "ropsten": {
+    "SimpleStore": {
+      "bytecode": "0x...",
+      "interface": "[{....}]",
+      "address": "0x3a70a6765746af3bfa974fff9d753d4b6c56b333",
+      "inputs": [],
+      "transactionObject": {
+        "from": "0x7f3e74e3dbb4091973ea1b449692c504c35ef768",
+        "gas": 3000001
+      }
+    }
+  },
+  "contracts": {
+    "SimpleStoreInterface": {
+      "bytecode": "0x...",
+      "interface": "[{....}]",
+    },
+    "Token": {
+      "bytecode": "0x...",
+      "interface": "[{....}]",
+    },
+    "Proxy": {
+      "bytecode": "0x...",
+      "interface": "[{....}]",
+    }
+  }
+}
+```
+
+Now with this input, you can take the interface data into your dApp. Note, this will override the contracts environment everytime.
 
 ## Deployment Modules
 
