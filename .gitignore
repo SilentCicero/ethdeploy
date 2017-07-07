@@ -2,6 +2,11 @@
 node_modules
 coverage
 
+lib
+!src/lib/
+!src/lib
+!src/*
+
 # Cruft
 .DS_Store
 npm-debug.log
