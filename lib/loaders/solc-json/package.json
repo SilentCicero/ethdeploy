@@ -1,7 +1,7 @@
 {
-  "name": "ethdeploy-solc-loader",
-  "version": "1.0.3",
-  "description": "A solc loader for ethdeploy.",
+  "name": "ethdeploy-solc-json-loader",
+  "version": "1.0.0",
+  "description": "A solc json loader for ethdeploy.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,9 +21,6 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/SilentCicero/ethdeploy-solc-loader/issues"
-  },
-  "peerDependencies": {
-    "solc": "*"
   },
   "homepage": "https://github.com/SilentCicero/ethdeploy-solc-loader#readme"
 }

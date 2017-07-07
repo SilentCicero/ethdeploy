@@ -10,7 +10,16 @@ const solc = require('solc');
  * @return {Object} contracts the output contracts
  */
 module.exports = function solcLoader(sourceMap, loaderConfig, environment) {
-  const output = solc.compile({ sources: sourceMap }, (loaderConfig.optimize || 0));
+  const adjustBase = loaderConfig.base;
+  const adjustedSourceMap = {};
+
+  if (adjustBase) {
+    Object.keys(sourceMap).forEach(filePath => {
+      adjustedSourceMap[filePath.replace(adjustBase, '').replace(/\/\//g, '').trim()] = sourceMap[filePath];
+    });
+  }
+
+  const output = solc.compile({ sources: (adjustBase ? adjustedSourceMap : sourceMap) }, (loaderConfig.optimize || 0));
 
   if (output.errors) {
     throw new Error(`[solc-loader] while compiling contracts, errors: ${JSON.stringify(output.errors, null, 2)}`);
