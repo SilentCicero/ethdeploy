@@ -4,7 +4,6 @@
   "description": "A simple ethdeploy example configuration ",
   "main": "index.js",
   "scripts": {
-    "deploy2": "NODE_PATH=node_modules node ./node_modules/ethdeploy/bin/ethdeploy.js ./ethdeploy.testrpc.config.js",
     "deploy": "node ./node_modules/ethdeploy/bin/ethdeploy.js ./ethdeploy.testrpc.config.js",
     "start": "npm run deploy && node ./index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,11 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "ethdeploy": "file:../",
-    "ethdeploy-environment-loader": "file:../src/loaders/environment",
     "ethdeploy-solc-loader": "file:../src/loaders/solc",
-    "meow": "^3.7.0"
-  },
-  "devDependencies": {
-    "ethereumjs-testrpc": "^4.0.1"
+    "ethdeploy-environment-loader": "file:../src/loaders/environment",
   }
 }
