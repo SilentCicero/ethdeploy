@@ -1,5 +1,6 @@
 # Don't check auto-generated stuff into git
 node_modules
+package-lock.json
 coverage
 
 lib
@@ -10,3 +11,4 @@ lib
 # Cruft
 .DS_Store
 npm-debug.log
+
