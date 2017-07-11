@@ -38,11 +38,7 @@ Checkout the ethdeploy [example](/example/index.js) provided. This will launch a
 ```
 cd example
 npm install
-(cd node_modules/ethdeploy/ && npm install)
-npm install -g eslint
-node_modules/.bin/testrpc & 
-[some initialization of the 'input' address]
-npm run deploy
+npm start
 ```
 
 ## CLI
