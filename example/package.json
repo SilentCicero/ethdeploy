@@ -15,8 +15,9 @@
   "author": "Nick Dodson",
   "license": "MIT",
   "dependencies": {
-    "ethdeploy": "file:../",
     "ethdeploy-solc-loader": "file:../src/loaders/solc",
     "ethdeploy-environment-loader": "file:../src/loaders/environment",
+    "ethdeploy": "file:../",
+    "ethereumjs-testrpc": "*"
   }
 }
