@@ -1,5 +1,15 @@
 const solc = require('solc');
 
+// detect error type from error messages
+function errortype (message) {
+  return (String(message).match(/^(.*:[0-9]*:[0-9]* )?Warning: /) ? 'warning' : 'error');
+}
+
+// remove warnings from errors
+function filterErrorWarnings(errors) {
+  return (errors || []).filter(error => errortype(error) === 'error');
+}
+
 /**
  * Compiles solidity files in sourcemap, returns contracts.
  *
@@ -11,6 +21,7 @@ const solc = require('solc');
  */
 module.exports = function solcLoader(sourceMap, loaderConfig, environment) {
   const adjustBase = loaderConfig.base;
+  const filterWarnings = loaderConfig.filterWarnings;
   const adjustedSourceMap = {};
 
   if (adjustBase) {
@@ -20,9 +31,10 @@ module.exports = function solcLoader(sourceMap, loaderConfig, environment) {
   }
 
   const output = solc.compile({ sources: (adjustBase ? adjustedSourceMap : sourceMap) }, (loaderConfig.optimize || 0));
+  const errors = (filterWarnings ? filterErrorWarnings(output.errors) : output.errors) || [];
 
-  if (output.errors) {
-    throw new Error(`[solc-loader] while compiling contracts, errors: ${JSON.stringify(output.errors, null, 2)}`);
+  if (errors.length > 0) {
+    throw new Error(`[solc-loader] while compiling contracts, errors: ${JSON.stringify((output.errors || []), null, 2)}`);
   }
 
   return { [environment.name]: output.contracts };
