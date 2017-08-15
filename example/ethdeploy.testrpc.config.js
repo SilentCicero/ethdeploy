@@ -26,7 +26,7 @@ module.exports = (options) => ({ // eslint-disable-line
       { test: /\.(sol)$/, loader: 'ethdeploy-solc-loader' },
     ],
     deployment: (deploy, contracts, done) => {
-      deploy(contracts.SimpleStore, 458977, { from: 0 }).then(() => {
+      deploy(contracts['contracts/SimpleStore.sol:SimpleStore'], 458977, { from: 0 }).then(() => {
         done();
       });
     },

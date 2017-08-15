@@ -33,12 +33,12 @@ npm install --save ethdeploy
 
 ## Example
 
-Checkout the ethdeploy [example](/example/index.js) provided. This will deploy a bunch of contracts with an ethdeploy setup and config.
+Checkout the ethdeploy [example](/example/index.js) provided. This will launch a testrpc server (a dummy ethereum api) in the background, and then deploy a bunch of contracts.
 
 ```
 cd example
 npm install
-npm run example
+npm start
 ```
 
 ## CLI
@@ -51,6 +51,8 @@ ethdeploy ./ethdeploy.testnet.js
 // or locally as:
 
 node ./node_modules/ethdeploy/bin/ethdeploy.js ./ethdeploy.testnet.js
+#NOTE: currently it is necessary to first 
+(cd node_modules/ethdeploy/ && npm install)
 ```
 
 ## Example Deployment Module
