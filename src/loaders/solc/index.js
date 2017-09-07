@@ -22,6 +22,7 @@ function filterErrorWarnings(errors) {
 module.exports = function solcLoader(sourceMap, loaderConfig, environment) {
   const adjustBase = loaderConfig.base;
   const filterWarnings = loaderConfig.filterWarnings;
+  const filterFilenames = loaderConfig.filterFilenames;
   const adjustedSourceMap = {};
 
   if (adjustBase) {
@@ -32,10 +33,22 @@ module.exports = function solcLoader(sourceMap, loaderConfig, environment) {
 
   const output = solc.compile({ sources: (adjustBase ? adjustedSourceMap : sourceMap) }, (loaderConfig.optimize || 0));
   const errors = (filterWarnings ? filterErrorWarnings(output.errors) : output.errors) || [];
+  const outputContracts = Object.assign({}, output.contracts);
 
   if (errors.length > 0) {
     throw new Error(`[solc-loader] while compiling contracts, errors: ${JSON.stringify((output.errors || []), null, 2)}`);
   }
 
-  return { [environment.name]: output.contracts };
+  if (filterFilenames) {
+    Object.keys(outputContracts)
+    .forEach(sourceKey => {
+      const savedSource = Object.assign({}, outputContracts[sourceKey]);
+      delete outputContracts[sourceKey];
+
+      const filteredName = String(sourceKey).split(':').pop();
+      outputContracts[filteredName] = savedSource;
+    });
+  }
+
+  return { [environment.name]: outputContracts };
 };

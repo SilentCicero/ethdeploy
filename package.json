@@ -1,6 +1,6 @@
 {
   "name": "ethdeploy",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A highly configurable contract deployment and staging utiltiy.",
   "main": "lib/index.js",
   "files": [

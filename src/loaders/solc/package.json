@@ -1,6 +1,6 @@
 {
   "name": "ethdeploy-solc-loader",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "A solc loader for ethdeploy.",
   "main": "index.js",
   "scripts": {
