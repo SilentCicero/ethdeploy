@@ -1,0 +1,19 @@
+{
+  "testrpc": {
+    "SimpleStore": {
+      "bytecode": "606060405234610000576040516020806100fd833981016040528080519060200190919050505b806000819055505b505b60c08061003d6000396000f360606040526000357c0100000000000000000000000000000000000000000000000000000000900480632096525514604a5780637f626f1a14606a578063975057e7146084575b6000565b34600057605460a4565b6040518082815260200191505060405180910390f35b346000576082600480803590602001909190505060af565b005b34600057608e60ba565b6040518082815260200191505060405180910390f35b600060005490505b90565b806000819055505b50565b6000548156",
+      "interface": "[{\"constant\":true,\"inputs\":[],\"name\":\"getValue\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"setStore\",\"outputs\":[],\"payable\":false,\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"store\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"type\":\"function\"},{\"inputs\":[{\"name\":\"_initialValue\",\"type\":\"uint256\"}],\"payable\":false,\"type\":\"constructor\"}]",
+      "address": "0xf5fcf5c4301a8d4a78127ffdd455f224812436cb",
+      "inputs": [
+        458977,
+        {
+          "from": "0x94eec4dd61d256c7ff79f07798b8ed6188e72ccf"
+        }
+      ],
+      "transactionObject": {
+        "from": "0x94eec4dd61d256c7ff79f07798b8ed6188e72ccf",
+        "gas": 3000001
+      }
+    }
+  }
+}

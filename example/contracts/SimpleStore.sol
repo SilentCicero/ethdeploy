@@ -3,7 +3,7 @@ pragma solidity ^0.4.4;
 contract SimpleStore {
   uint256 public store;
 
-  function SimpleStore(uint256 _initialValue) {
+  function SimpleStore(uint256 _initialValue) public {
     store = _initialValue;
   }
 

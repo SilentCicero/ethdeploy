@@ -4,7 +4,7 @@
   "description": "A simple ethdeploy example configuration ",
   "main": "index.js",
   "scripts": {
-    "deploy": "node ./node_modules/ethdeploy/bin/ethdeploy.js ./ethdeploy.testrpc.config.js",
+    "deploy": "node ../bin/ethdeploy.js ./ethdeploy.testrpc.config.js",
     "start": "npm run deploy && node ./index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
