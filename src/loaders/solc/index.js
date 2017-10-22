@@ -1,7 +1,7 @@
 const solc = require('solc');
 
 // detect error type from error messages
-function errortype (message) {
+function errortype(message) {
   return (String(message).match(/^(.*:[0-9]*:[0-9]* )?Warning: /) ? 'warning' : 'error');
 }
 
