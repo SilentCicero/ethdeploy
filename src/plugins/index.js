@@ -1,5 +1,5 @@
 /**
- * Expands JSON output
+ * Minifies JSON output
  *
  * @method JSONMinifier
  * @param {String} output the final build file produced by ethdeploy
@@ -11,10 +11,10 @@ function JSONMinifier() {
 }
 
 /**
- * Minifies JSON output
+ * Expands JSON output
  *
  * @method JSONMinifier
- * @param {String} output the final build file produced by ethdeploy
+ * @param {String} output the final build file produced by ethdeploy with indents
  * @return {String} parsedOutput parsed output
  */
 function JSONExpander() {
