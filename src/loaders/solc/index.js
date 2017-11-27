@@ -1,4 +1,5 @@
 const solc = require('solc');
+const fs = require('fs');
 
 // detect error type from error messages
 function errortype(message) {
@@ -8,6 +9,23 @@ function errortype(message) {
 // remove warnings from errors
 function filterErrorWarnings(errors) {
   return (errors || []).filter(error => errortype(error) === 'error');
+}
+
+function findImportsFn (importResolves) {
+  return (path) => {
+    let contents
+    importResolves.some((fallbackPath) => {
+      try {
+        contents = fs.readFileSync(`${fallbackPath}/${path}`).toString();
+        return true;
+      } catch (err) { }
+    })
+    if (contents) {
+      return { contents };
+    } else {
+      return { error: 'File not found' };
+    }
+  }
 }
 
 /**
@@ -23,6 +41,8 @@ module.exports = function solcLoader(sourceMap, loaderConfig, environment) {
   const adjustBase = loaderConfig.base;
   const filterWarnings = loaderConfig.filterWarnings;
   const filterFilenames = loaderConfig.filterFilenames;
+  const importResolves = loaderConfig.importResolves;
+  const findImports = loaderConfig.findImports ? loaderConfig.findImports : (importResolves ? findImportsFn(importResolves) : undefined);
   const adjustedSourceMap = {};
 
   if (adjustBase) {
@@ -31,7 +51,7 @@ module.exports = function solcLoader(sourceMap, loaderConfig, environment) {
     });
   }
 
-  const output = solc.compile({ sources: (adjustBase ? adjustedSourceMap : sourceMap) }, (loaderConfig.optimize || 0));
+  const output = solc.compile({ sources: (adjustBase ? adjustedSourceMap : sourceMap) }, (loaderConfig.optimize || 0), findImports);
   const errors = (filterWarnings ? filterErrorWarnings(output.errors) : output.errors) || [];
   const outputContracts = Object.assign({}, output.contracts);
 
